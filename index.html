@@ -594,7 +594,7 @@
                 <ol style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
                     <li>確認您已經在 Google Apps Script 完成部署</li>
                     <li>複製部署後的網址（應該像這樣：https://script.google.com/macros/s/xxxxx/exec）</li>
-                    <li>在這個 HTML 檔案中找到 SCRIPT_URL 變數（約在第 900 行）</li>
+                    <li>在這個 HTML 檔案中找到 SCRIPT_URL 變數</li>
                     <li>將您的網址貼上取代原本的範例網址</li>
                     <li>儲存檔案並重新載入網頁</li>
                 </ol>
@@ -842,6 +842,188 @@
         const teacherPassword = 'admin123';
         let countdownInterval = null;
 
+        // 檢查是否在簽到時間內（修正版：確實執行時間限制）
+        function checkSigninTime() {
+            const now = new Date();
+            const day = now.getDay(); // 0 = 週日, 6 = 週六
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            
+            // 檢查是否為週六 11:00-12:00
+            const isSigninTime = (day === 6 && hours === 11);
+            
+            // 更新簽到時間狀態顯示
+            const signinTimeInfo = document.getElementById('signinTimeInfo');
+            if (isSigninTime) {
+                signinTimeInfo.className = 'signin-time-info available';
+                signinTimeInfo.innerHTML = '✅ 現在是簽到時間（剩餘 ' + (60 - minutes) + ' 分鐘）';
+            } else {
+                signinTimeInfo.className = 'signin-time-info unavailable';
+                signinTimeInfo.innerHTML = '⏰ 簽到時間：每週六 11:00-12:00';
+            }
+            
+            // 更新簽到頁面的提示
+            const timeRestrictionNotice = document.getElementById('timeRestrictionNotice');
+            const countdownTimer = document.getElementById('countdownTimer');
+            
+            if (!isSigninTime) {
+                // 計算下次簽到時間
+                const nextSaturday = getNextSigninTime();
+                const timeDiff = nextSaturday - now;
+                const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const mins = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                const secs = Math.floor((timeDiff % (1000 * 60)) / 1000);
+                
+                if (timeRestrictionNotice) {
+                    timeRestrictionNotice.style.display = 'block';
+                    document.getElementById('nextSigninTime').innerHTML = 
+                        `距離下次簽到時間還有：${days}天 ${hours}小時 ${mins}分 ${secs}秒`;
+                }
+                
+                if (countdownTimer) {
+                    countdownTimer.style.display = 'none';
+                }
+                
+                // 重要：禁用簽到按鈕
+                const signInBtn = document.getElementById('signInBtn');
+                if (signInBtn && !signInBtn.hasAttribute('data-override')) {
+                    signInBtn.disabled = true;
+                    signInBtn.style.background = '#cbd5e0';
+                    signInBtn.style.cursor = 'not-allowed';
+                    signInBtn.innerHTML = '非簽到時間';
+                }
+            } else {
+                if (timeRestrictionNotice) {
+                    timeRestrictionNotice.style.display = 'none';
+                }
+                
+                // 顯示倒數計時
+                if (countdownTimer) {
+                    countdownTimer.style.display = 'block';
+                    const remainingMins = 60 - minutes;
+                    const remainingSecs = 60 - now.getSeconds();
+                    countdownTimer.innerHTML = `⏱️ 簽到時間剩餘：${remainingMins - 1}分 ${remainingSecs}秒`;
+                }
+                
+                // 啟用簽到按鈕
+                const signInBtn = document.getElementById('signInBtn');
+                if (signInBtn) {
+                    signInBtn.disabled = false;
+                    signInBtn.style.background = '#667eea';
+                    signInBtn.style.cursor = 'pointer';
+                    signInBtn.innerHTML = '簽到';
+                }
+            }
+            
+            return isSigninTime;
+        }
+
+        // 取得下次簽到時間
+        function getNextSigninTime() {
+            const now = new Date();
+            const nextSaturday = new Date(now);
+            
+            // 設定為下個週六
+            const daysUntilSaturday = (6 - now.getDay() + 7) % 7 || 7;
+            nextSaturday.setDate(now.getDate() + daysUntilSaturday);
+            
+            // 如果今天是週六但已過簽到時間，則設定為下週六
+            if (now.getDay() === 6 && now.getHours() >= 12) {
+                nextSaturday.setDate(nextSaturday.getDate() + 7);
+            }
+            
+            // 設定時間為 11:00
+            nextSaturday.setHours(11, 0, 0, 0);
+            
+            return nextSaturday;
+        }
+
+        // 學生簽到（修正版：嚴格執行時間限制，不傳送客戶端時間）
+        async function studentSignIn(override = false) {
+            // 檢查簽到時間（除非是強制簽到）
+            if (!override) {
+                const isSigninTime = checkSigninTime();
+                if (!isSigninTime) {
+                    showMessage('signinMessage', '現在不是簽到時間！請在每週六 11:00-12:00 簽到', 'error');
+                    
+                    // 額外的保護：確保按鈕被禁用
+                    const btn = document.getElementById('signInBtn');
+                    btn.disabled = true;
+                    btn.style.background = '#cbd5e0';
+                    btn.innerHTML = '非簽到時間';
+                    
+                    return;
+                }
+            }
+            
+            const studentIdInput = document.getElementById('studentId').value.trim();
+            const week = document.getElementById('weekSelect').value;
+            const btn = document.getElementById('signInBtn');
+            
+            if (!studentIdInput) {
+                showMessage('signinMessage', '請輸入學號', 'error');
+                return;
+            }
+            
+            if (!week) {
+                showMessage('signinMessage', '請選擇週次', 'error');
+                return;
+            }
+            
+            const student = students.find(s => s.id.toLowerCase() === studentIdInput.toLowerCase());
+            
+            if (!student) {
+                showMessage('signinMessage', '查無此學號，請確認輸入是否正確', 'error');
+                return;
+            }
+            
+            if (SCRIPT_URL === 'https://script.google.com/macros/s/您的腳本ID/exec') {
+                showMessage('signinMessage', '請先設定 Google Apps Script 網址', 'error');
+                toggleDiagnostic();
+                return;
+            }
+            
+            // 顯示載入中
+            btn.disabled = true;
+            btn.innerHTML = '簽到中... <span class="loading"></span>';
+            
+            try {
+                // 不再傳送客戶端時間，讓伺服器自己記錄時間
+                const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&override=${override}`;
+                
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('signinMessage', `簽到成功！${student.name}同學，您已完成第${week}週的簽到。`, 'success');
+                    document.getElementById('studentId').value = '';
+                } else {
+                    showMessage('signinMessage', result.message || '簽到失敗', 'error');
+                }
+            } catch (error) {
+                showMessage('signinMessage', '網路錯誤，請稍後再試', 'error');
+                updateSyncStatus(false);
+            } finally {
+                // 根據時間狀態恢復按鈕
+                if (!override) {
+                    const isSigninTime = checkSigninTime();
+                    if (!isSigninTime) {
+                        btn.disabled = true;
+                        btn.style.background = '#cbd5e0';
+                        btn.innerHTML = '非簽到時間';
+                    } else {
+                        btn.disabled = false;
+                        btn.style.background = '#667eea';
+                        btn.innerHTML = '簽到';
+                    }
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '簽到';
+                }
+            }
+        }
+
         // 診斷功能
         function toggleDiagnostic() {
             const panel = document.getElementById('diagnosticPanel');
@@ -913,7 +1095,7 @@
 
         // 測試簽到功能
         async function testSignIn() {
-            const testStudent = students[0]; // 使用第一個學生測試
+            const testStudent = students[0];
             alert(`將使用測試學生資料：\n學號：${testStudent.id}\n姓名：${testStudent.name}\n\n這只是測試，不會真的簽到。`);
             
             try {
@@ -934,7 +1116,6 @@
         function init() {
             if (SCRIPT_URL === 'https://script.google.com/macros/s/您的腳本ID/exec') {
                 updateSyncStatus(false);
-                // 自動顯示診斷面板
                 setTimeout(() => {
                     document.getElementById('diagnosticPanel').classList.add('show');
                 }, 1000);
@@ -946,83 +1127,13 @@
             populateWeekDropdown();
             updateCurrentWeek();
             updateDateTime();
+            
+            // 立即檢查並設定簽到時間狀態
             checkSigninTime();
+            
+            // 每秒更新時間和檢查簽到狀態
             setInterval(updateDateTime, 1000);
             setInterval(checkSigninTime, 1000);
-        }
-
-        // 填充教師管理的週次下拉選單
-        function populateWeekDropdown() {
-            const dropdown = document.getElementById('weekDropdown');
-            if (dropdown) {
-                dropdown.innerHTML = '';
-                for (let i = 1; i <= 18; i++) {
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = `第 ${i} 週`;
-                    dropdown.appendChild(option);
-                }
-                dropdown.value = getCurrentWeek();
-            }
-        }
-
-        // 透過下拉選單改變週次
-        function changeWeekByDropdown() {
-            const dropdown = document.getElementById('weekDropdown');
-            currentViewWeek = parseInt(dropdown.value);
-            refreshData();
-        }
-
-        // 檢查是否在簽到時間內（測試用：暫時關閉時間限制）
-        function checkSigninTime() {
-            const now = new Date();
-            const day = now.getDay();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            
-            // 測試期間：允許任何時間簽到
-            // 正式使用時，請將下面這行改回：const isSigninTime = (day === 6 && hours === 11);
-            const isSigninTime = true; // 暫時允許任何時間簽到
-            
-            const signinTimeInfo = document.getElementById('signinTimeInfo');
-            if (isSigninTime) {
-                signinTimeInfo.className = 'signin-time-info available';
-                signinTimeInfo.innerHTML = '✅ 現在可以簽到（測試模式）';
-            } else {
-                signinTimeInfo.className = 'signin-time-info unavailable';
-                signinTimeInfo.innerHTML = '⏰ 簽到時間：每週六 11:00-12:00';
-            }
-            
-            return isSigninTime;
-        }
-
-        // 其他所有函數保持不變...
-        // [這裡包含所有其他的 JavaScript 函數，與之前相同]
-
-        // 重新整理資料
-        async function refreshData() {
-            if (SCRIPT_URL === 'https://script.google.com/macros/s/您的腳本ID/exec') {
-                attendanceData = [];
-                updateTeacherDashboard();
-                return;
-            }
-            
-            try {
-                const url = `${SCRIPT_URL}?action=getAll&week=${currentViewWeek}`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        attendanceData = result.data || [];
-                        updateTeacherDashboard();
-                        updateSyncStatus(true);
-                    }
-                }
-            } catch (error) {
-                attendanceData = [];
-                updateTeacherDashboard();
-            }
         }
 
         // 更新同步狀態
@@ -1039,77 +1150,6 @@
             } else {
                 statusEl.className = 'sync-status offline';
                 statusEl.innerHTML = '❌ 未連接至 Google Sheets（點擊查看診斷）';
-            }
-        }
-
-        // 學生簽到（簡化版，用於測試）
-        async function studentSignIn(override = false) {
-            // 測試期間關閉時間檢查
-            // if (!override && !checkSigninTime()) {
-            //     showMessage('signinMessage', '現在不是簽到時間！', 'error');
-            //     return;
-            // }
-            
-            const studentIdInput = document.getElementById('studentId').value.trim();
-            const week = document.getElementById('weekSelect').value;
-            const btn = document.getElementById('signInBtn');
-            
-            if (!studentIdInput) {
-                showMessage('signinMessage', '請輸入學號', 'error');
-                return;
-            }
-            
-            if (!week) {
-                showMessage('signinMessage', '請選擇週次', 'error');
-                return;
-            }
-            
-            const student = students.find(s => s.id.toLowerCase() === studentIdInput.toLowerCase());
-            
-            if (!student) {
-                showMessage('signinMessage', '查無此學號', 'error');
-                return;
-            }
-            
-            if (SCRIPT_URL === 'https://script.google.com/macros/s/您的腳本ID/exec') {
-                showMessage('signinMessage', '請先設定 Google Apps Script 網址', 'error');
-                toggleDiagnostic();
-                return;
-            }
-            
-            btn.disabled = true;
-            btn.innerHTML = '簽到中...';
-            
-            try {
-                const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&dateTime=${encodeURIComponent(new Date().toLocaleString('zh-TW'))}`;
-                
-                const response = await fetch(url);
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('signinMessage', `簽到成功！${student.name}同學`, 'success');
-                    document.getElementById('studentId').value = '';
-                } else {
-                    showMessage('signinMessage', result.message || '簽到失敗', 'error');
-                }
-            } catch (error) {
-                showMessage('signinMessage', '網路錯誤，請稍後再試', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '簽到';
-            }
-        }
-
-        // 顯示訊息
-        function showMessage(elementId, message, type) {
-            const messageDiv = document.getElementById(elementId);
-            if (messageDiv) {
-                messageDiv.className = `message ${type}`;
-                messageDiv.textContent = message;
-                setTimeout(() => {
-                    messageDiv.textContent = '';
-                    messageDiv.className = '';
-                }, 3000);
             }
         }
 
@@ -1131,6 +1171,21 @@
                 select.appendChild(option);
             }
             select.value = getCurrentWeek();
+        }
+
+        // 填充教師管理的週次下拉選單
+        function populateWeekDropdown() {
+            const dropdown = document.getElementById('weekDropdown');
+            if (dropdown) {
+                dropdown.innerHTML = '';
+                for (let i = 1; i <= 18; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `第 ${i} 週`;
+                    dropdown.appendChild(option);
+                }
+                dropdown.value = getCurrentWeek();
+            }
         }
 
         // 取得當前週次
@@ -1166,6 +1221,128 @@
             }
         }
 
+        // 透過下拉選單改變週次
+        function changeWeekByDropdown() {
+            const dropdown = document.getElementById('weekDropdown');
+            currentViewWeek = parseInt(dropdown.value);
+            refreshData();
+        }
+
+        // 查詢簽到記錄
+        async function queryAttendance() {
+            const studentIdInput = document.getElementById('queryStudentId').value.trim();
+            const btn = document.getElementById('queryBtn');
+            
+            if (!studentIdInput) {
+                showMessage('queryMessage', '請輸入學號', 'error');
+                return;
+            }
+            
+            const student = students.find(s => s.id.toLowerCase() === studentIdInput.toLowerCase());
+            
+            if (!student) {
+                showMessage('queryMessage', '查無此學號，請確認輸入是否正確', 'error');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '查詢中... <span class="loading"></span>';
+            
+            try {
+                const url = `${SCRIPT_URL}?action=query&studentId=${student.id}`;
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayQueryResult(student, result.data);
+                    showMessage('queryMessage', '查詢成功', 'success');
+                } else {
+                    showMessage('queryMessage', '查詢失敗', 'error');
+                }
+            } catch (error) {
+                showMessage('queryMessage', '網路錯誤，請稍後再試', 'error');
+                updateSyncStatus(false);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '查詢';
+            }
+        }
+
+        // 顯示查詢結果
+        function displayQueryResult(student, attendanceRecords) {
+            let html = `
+                <div class="student-info">
+                    <h3 style="margin-bottom: 15px; color: #333;">學生資訊</h3>
+                    <div class="info-row">
+                        <span class="info-label">班級：</span>
+                        <span class="info-value">${student.class}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">學號：</span>
+                        <span class="info-value">${student.id}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">姓名：</span>
+                        <span class="info-value">${student.name}</span>
+                    </div>
+                </div>
+                
+                <div class="attendance-history">
+                    <h3 style="color: #333;">簽到記錄</h3>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>週次</th>
+                                <th>簽到時間</th>
+                                <th>狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            let signedWeeks = {};
+            attendanceRecords.forEach(record => {
+                signedWeeks[record.week] = record.dateTime;
+            });
+            
+            let signedCount = 0;
+            for (let week = 1; week <= getCurrentWeek(); week++) {
+                if (signedWeeks[week]) {
+                    signedCount++;
+                    html += `
+                        <tr>
+                            <td>第 ${week} 週</td>
+                            <td>${signedWeeks[week]}</td>
+                            <td class="status-signed">✓ 已簽到</td>
+                        </tr>
+                    `;
+                } else {
+                    html += `
+                        <tr>
+                            <td>第 ${week} 週</td>
+                            <td>-</td>
+                            <td class="status-not-signed">未簽到</td>
+                        </tr>
+                    `;
+                }
+            }
+            
+            const currentWeek = Math.min(getCurrentWeek(), 18);
+            const percentage = currentWeek > 0 ? Math.round((signedCount / currentWeek) * 100) : 0;
+            
+            html += `
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 15px; padding: 10px; background: #f7fafc; border-radius: 5px;">
+                        <strong>統計：</strong> 已簽到 ${signedCount} 週 / 應簽到 ${currentWeek} 週
+                        (簽到率：${percentage}%)
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('queryResult').innerHTML = html;
+        }
+
         // 教師登入
         function teacherLogin() {
             const password = document.getElementById('teacherPassword').value;
@@ -1187,6 +1364,32 @@
             document.getElementById('teacherLogin').style.display = 'block';
             document.getElementById('teacherDashboard').style.display = 'none';
             document.getElementById('teacherPassword').value = '';
+        }
+
+        // 重新整理資料
+        async function refreshData() {
+            if (SCRIPT_URL === 'https://script.google.com/macros/s/您的腳本ID/exec') {
+                attendanceData = [];
+                updateTeacherDashboard();
+                return;
+            }
+            
+            try {
+                const url = `${SCRIPT_URL}?action=getAll&week=${currentViewWeek}`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        attendanceData = result.data || [];
+                        updateTeacherDashboard();
+                        updateSyncStatus(true);
+                    }
+                }
+            } catch (error) {
+                attendanceData = [];
+                updateTeacherDashboard();
+            }
         }
 
         // 更新教師管理介面
@@ -1288,89 +1491,31 @@
             updateTeacherDashboard();
         }
 
-        // 查詢簽到記錄
-        async function queryAttendance() {
-            const studentIdInput = document.getElementById('queryStudentId').value.trim();
-            const btn = document.getElementById('queryBtn');
-            
-            if (!studentIdInput) {
-                showMessage('queryMessage', '請輸入學號', 'error');
-                return;
-            }
-            
-            const student = students.find(s => s.id.toLowerCase() === studentIdInput.toLowerCase());
-            
-            if (!student) {
-                showMessage('queryMessage', '查無此學號', 'error');
-                return;
-            }
-            
-            btn.disabled = true;
-            btn.innerHTML = '查詢中...';
-            
-            try {
-                const url = `${SCRIPT_URL}?action=query&studentId=${student.id}`;
-                const response = await fetch(url);
-                const result = await response.json();
-                
-                if (result.success) {
-                    displayQueryResult(student, result.data);
-                    showMessage('queryMessage', '查詢成功', 'success');
-                } else {
-                    showMessage('queryMessage', '查詢失敗', 'error');
-                }
-            } catch (error) {
-                showMessage('queryMessage', '網路錯誤', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '查詢';
-            }
-        }
-
-        // 顯示查詢結果
-        function displayQueryResult(student, attendanceRecords) {
-            let html = `
-                <div class="student-info">
-                    <h3>學生資訊</h3>
-                    <div class="info-row">
-                        <span class="info-label">班級：</span>
-                        <span class="info-value">${student.class}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">學號：</span>
-                        <span class="info-value">${student.id}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">姓名：</span>
-                        <span class="info-value">${student.name}</span>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('queryResult').innerHTML = html;
-        }
-
-        // 其他功能函數（保持原樣）
+        // 手動補簽（修正版：使用伺服器時間）
         async function addAttendance(studentId, week) {
             const student = students.find(s => s.id === studentId);
             if (student) {
                 try {
-                    const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&dateTime=${encodeURIComponent(new Date().toLocaleString('zh-TW') + ' (補簽)')}`;
+                    const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&override=true`;
                     
                     const response = await fetch(url);
                     const result = await response.json();
                     
                     if (result.success) {
                         refreshData();
+                        alert(`補簽成功！\n簽到時間：${result.time}`);
+                    } else {
+                        alert(result.message || '補簽失敗');
                     }
                 } catch (error) {
-                    alert('補簽失敗');
+                    alert('補簽失敗，請稍後再試');
                 }
             }
         }
 
+        // 取消簽到
         async function removeAttendance(studentId, week) {
-            if (confirm('確定要取消簽到嗎？')) {
+            if (confirm('確定要取消此學生的簽到記錄嗎？')) {
                 try {
                     const url = `${SCRIPT_URL}?action=delete&week=${week}&studentId=${studentId}`;
                     const response = await fetch(url);
@@ -1380,13 +1525,14 @@
                         refreshData();
                     }
                 } catch (error) {
-                    alert('取消失敗');
+                    alert('取消簽到失敗，請稍後再試');
                 }
             }
         }
 
+        // 手動補簽功能
         function manualSignIn() {
-            const studentId = prompt('請輸入學號：');
+            const studentId = prompt('請輸入要補簽的學號：');
             if (studentId) {
                 const student = students.find(s => s.id.toLowerCase() === studentId.toLowerCase());
                 if (student) {
@@ -1397,40 +1543,90 @@
             }
         }
 
+        // 強制簽到（教師功能，無視時間限制）
         function overrideSignIn() {
-            const studentId = prompt('請輸入學號（強制簽到）：');
+            const studentId = prompt('請輸入要強制簽到的學號（無視時間限制）：');
             if (studentId) {
                 const student = students.find(s => s.id.toLowerCase() === studentId.toLowerCase());
                 if (student) {
+                    // 設定表單值
                     document.getElementById('studentId').value = student.id;
                     document.getElementById('weekSelect').value = currentViewWeek;
-                    studentSignIn(true);
+                    
+                    // 暫時標記按鈕為 override 模式
+                    const btn = document.getElementById('signInBtn');
+                    btn.setAttribute('data-override', 'true');
+                    
+                    // 呼叫簽到函數，傳入 override = true
+                    studentSignIn(true).then(() => {
+                        // 移除 override 標記
+                        btn.removeAttribute('data-override');
+                        // 恢復按鈕狀態
+                        checkSigninTime();
+                    });
                 } else {
                     alert('查無此學號');
                 }
             }
         }
 
+        // 匯出本週資料
         async function exportData() {
-            alert('匯出功能開發中...');
+            await refreshData();
+            
+            let csv = '\ufeff班級,學號,姓名,簽到時間,狀態\n';
+            
+            const attendanceMap = {};
+            attendanceData.forEach(record => {
+                if (record.week == currentViewWeek) {
+                    attendanceMap[record.studentId.toLowerCase()] = record;
+                }
+            });
+            
+            students.forEach(student => {
+                const attendance = attendanceMap[student.id.toLowerCase()];
+                const status = attendance ? '已簽到' : '未簽到';
+                const time = attendance ? attendance.dateTime : '-';
+                csv += `${student.class},${student.id},${student.name},${time},${status}\n`;
+            });
+            
+            downloadCSV(csv, `第${currentViewWeek}週簽到記錄_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.csv`);
         }
 
+        // 匯出所有資料
         async function exportAllData() {
-            alert('匯出功能開發中...');
-        }
-
-        async function clearWeekData() {
-            if (confirm('確定要清除本週資料嗎？')) {
-                alert('清除功能開發中...');
+            try {
+                const url = `${SCRIPT_URL}?action=getAll`;
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    let csv = '\ufeff週次,班級,學號,姓名,簽到時間,狀態\n';
+                    
+                    const attendanceMap = {};
+                    result.data.forEach(record => {
+                        const key = `${record.week}_${record.studentId.toLowerCase()}`;
+                        attendanceMap[key] = record;
+                    });
+                    
+                    for (let week = 1; week <= 18; week++) {
+                        students.forEach(student => {
+                            const key = `${week}_${student.id.toLowerCase()}`;
+                            const attendance = attendanceMap[key];
+                            const status = attendance ? '已簽到' : '未簽到';
+                            const time = attendance ? attendance.dateTime : '-';
+                            csv += `第${week}週,${student.class},${student.id},${student.name},${time},${status}\n`;
+                        });
+                    }
+                    
+                    downloadCSV(csv, `全學期簽到記錄_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.csv`);
+                }
+            } catch (error) {
+                alert('匯出失敗，請稍後再試');
             }
         }
 
-        async function clearAllData() {
-            if (confirm('確定要清除所有資料嗎？')) {
-                alert('清除功能開發中...');
-            }
-        }
-
+        // 下載 CSV 檔案
         function downloadCSV(csv, filename) {
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -1441,6 +1637,57 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        // 清除本週資料
+        async function clearWeekData() {
+            if (confirm(`確定要清除第 ${currentViewWeek} 週的所有簽到資料嗎？`)) {
+                try {
+                    const url = `${SCRIPT_URL}?action=clearWeek&week=${currentViewWeek}`;
+                    const response = await fetch(url);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        refreshData();
+                        alert(`第 ${currentViewWeek} 週的資料已清除`);
+                    }
+                } catch (error) {
+                    alert('清除失敗，請稍後再試');
+                }
+            }
+        }
+
+        // 清除所有資料
+        async function clearAllData() {
+            if (confirm('確定要清除所有簽到資料嗎？此操作無法復原！')) {
+                if (confirm('請再次確認：是否真的要刪除所有簽到記錄？')) {
+                    try {
+                        const url = `${SCRIPT_URL}?action=clearAll`;
+                        const response = await fetch(url);
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            refreshData();
+                            alert('所有資料已清除');
+                        }
+                    } catch (error) {
+                        alert('清除失敗，請稍後再試');
+                    }
+                }
+            }
+        }
+
+        // 顯示訊息
+        function showMessage(elementId, message, type) {
+            const messageDiv = document.getElementById(elementId);
+            if (messageDiv) {
+                messageDiv.className = `message ${type}`;
+                messageDiv.textContent = message;
+                setTimeout(() => {
+                    messageDiv.textContent = '';
+                    messageDiv.className = '';
+                }, 3000);
+            }
         }
 
         // 初始化系統
