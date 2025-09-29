@@ -54,6 +54,24 @@
             color: #742a2a;
         }
 
+        .signin-time-info {
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .signin-time-info.available {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .signin-time-info.unavailable {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
         .tab-container {
             background: white;
             border-radius: 10px;
@@ -274,24 +292,29 @@
             margin-top: 5px;
         }
 
-        .week-selector {
+        .week-selector-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
             margin-bottom: 20px;
             justify-content: center;
         }
 
-        .week-button {
-            padding: 8px 16px;
-            font-size: 14px;
+        .week-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .current-week {
-            font-weight: bold;
+        .week-dropdown {
+            padding: 8px 16px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            background: white;
             color: #667eea;
-            padding: 0 20px;
-            font-size: 18px;
+            font-weight: bold;
+            min-width: 120px;
         }
 
         .attendance-table {
@@ -351,6 +374,14 @@
             background: #e53e3e;
         }
 
+        .override-button {
+            background: #ed8936;
+        }
+
+        .override-button:hover {
+            background: #dd6b20;
+        }
+
         .login-panel {
             max-width: 400px;
             margin: 0 auto;
@@ -391,6 +422,27 @@
             background: #5a67d8;
         }
 
+        .time-restriction-notice {
+            background: #fff5f5;
+            border: 2px solid #feb2b2;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .countdown-timer {
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f0f4f8;
+            border-radius: 5px;
+        }
+
         @media (max-width: 768px) {
             .stats {
                 grid-template-columns: 1fr;
@@ -408,7 +460,7 @@
                 flex-direction: column;
             }
 
-            .week-selector {
+            .week-selector-container {
                 flex-direction: column;
             }
         }
@@ -424,6 +476,9 @@
             <div id="syncStatus" class="sync-status online">
                 🌐 已連接至 Google Sheets
             </div>
+            <div id="signinTimeInfo" class="signin-time-info unavailable">
+                ⏰ 簽到時間：每週六 11:00-12:00
+            </div>
         </div>
 
         <div class="tab-container">
@@ -437,6 +492,9 @@
             <div id="studentTab" class="tab-content active">
                 <div class="signin-card">
                     <h2 style="text-align: center; margin-bottom: 20px; color: #333;">學生簽到</h2>
+                    
+                    <div id="countdownTimer" class="countdown-timer" style="display: none;"></div>
+                    
                     <div id="signinMessage"></div>
                     
                     <div class="form-group">
@@ -461,8 +519,15 @@
                             1. 請輸入您的完整學號（不分大小寫）<br>
                             2. 選擇對應的週次進行簽到<br>
                             3. 每週只能簽到一次<br>
-                            4. 資料會即時同步至雲端
+                            4. <strong style="color: #c53030;">簽到時間限制：每週六 11:00-12:00</strong><br>
+                            5. 資料會即時同步至雲端
                         </p>
+                    </div>
+
+                    <div id="timeRestrictionNotice" class="time-restriction-notice" style="display: none;">
+                        <strong>⚠️ 現在不是簽到時間</strong><br>
+                        請在每週六上午 11:00-12:00 進行簽到<br>
+                        <span id="nextSigninTime"></span>
                     </div>
                 </div>
             </div>
@@ -514,11 +579,17 @@
                         <button onclick="teacherLogout()" style="background: #718096;">登出</button>
                     </div>
 
-                    <!-- 週次選擇器 -->
-                    <div class="week-selector">
-                        <button class="week-button" onclick="changeWeek(-1)">◀ 上一週</button>
-                        <span class="current-week" id="currentWeekDisplay">第 1 週</span>
-                        <button class="week-button" onclick="changeWeek(1)">下一週 ▶</button>
+                    <!-- 週次選擇器（改為下拉選單） -->
+                    <div class="week-selector-container">
+                        <div class="week-selector">
+                            <label style="margin: 0; font-size: 16px; color: #333;">選擇週次：</label>
+                            <select id="weekDropdown" class="week-dropdown" onchange="changeWeekByDropdown()">
+                                <!-- 週次選項會動態生成 -->
+                            </select>
+                            <button onclick="refreshData()" style="padding: 8px 16px; font-size: 14px;">
+                                🔄 重新整理
+                            </button>
+                        </div>
                     </div>
 
                     <!-- 統計資料 -->
@@ -555,12 +626,7 @@
 
                     <!-- 簽到記錄表格 -->
                     <div class="attendance-table">
-                        <h3 style="margin: 20px 0 10px; color: #333;">
-                            詳細簽到記錄
-                            <button onclick="refreshData()" style="margin-left: 10px; padding: 5px 10px; font-size: 14px;">
-                                🔄 重新整理
-                            </button>
-                        </h3>
+                        <h3 style="margin: 20px 0 10px; color: #333;">詳細簽到記錄</h3>
                         <table>
                             <thead>
                                 <tr>
@@ -581,6 +647,7 @@
                         <button class="export-button" onclick="exportData()">匯出本週資料 (CSV)</button>
                         <button class="export-button" onclick="exportAllData()">匯出所有資料 (CSV)</button>
                         <button onclick="manualSignIn()" style="background: #4299e1;">手動補簽</button>
+                        <button class="override-button" onclick="overrideSignIn()">強制簽到（無視時間限制）</button>
                         <button class="danger-button" onclick="clearWeekData()">清除本週資料</button>
                         <button class="danger-button" onclick="clearAllData()">清除所有資料</button>
                     </div>
@@ -591,7 +658,7 @@
 
     <script>
         // ============ 重要：請在這裡貼上您的 Google Apps Script 網址 ============
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/execc';
         // =========================================================================
 
         // 學生資料
@@ -652,6 +719,7 @@
         let isTeacherLoggedIn = false;
         let currentClassFilter = 'all';
         const teacherPassword = 'admin123';
+        let countdownInterval = null;
 
         // 初始化
         function init() {
@@ -663,9 +731,113 @@
             }
             
             populateWeekSelect();
+            populateWeekDropdown();
             updateCurrentWeek();
             updateDateTime();
+            checkSigninTime();
             setInterval(updateDateTime, 1000);
+            setInterval(checkSigninTime, 1000);
+        }
+
+        // 填充教師管理的週次下拉選單
+        function populateWeekDropdown() {
+            const dropdown = document.getElementById('weekDropdown');
+            if (dropdown) {
+                dropdown.innerHTML = '';
+                for (let i = 1; i <= 18; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `第 ${i} 週`;
+                    dropdown.appendChild(option);
+                }
+                dropdown.value = getCurrentWeek();
+            }
+        }
+
+        // 透過下拉選單改變週次
+        function changeWeekByDropdown() {
+            const dropdown = document.getElementById('weekDropdown');
+            currentViewWeek = parseInt(dropdown.value);
+            refreshData();
+        }
+
+        // 檢查是否在簽到時間內
+        function checkSigninTime() {
+            const now = new Date();
+            const day = now.getDay(); // 0 = 週日, 6 = 週六
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            
+            // 檢查是否為週六 11:00-12:00
+            const isSigninTime = (day === 6 && hours === 11);
+            
+            // 更新簽到時間狀態顯示
+            const signinTimeInfo = document.getElementById('signinTimeInfo');
+            if (isSigninTime) {
+                signinTimeInfo.className = 'signin-time-info available';
+                signinTimeInfo.innerHTML = '✅ 現在是簽到時間（剩餘 ' + (60 - minutes) + ' 分鐘）';
+            } else {
+                signinTimeInfo.className = 'signin-time-info unavailable';
+                signinTimeInfo.innerHTML = '⏰ 簽到時間：每週六 11:00-12:00';
+            }
+            
+            // 更新簽到頁面的提示
+            const timeRestrictionNotice = document.getElementById('timeRestrictionNotice');
+            const countdownTimer = document.getElementById('countdownTimer');
+            
+            if (!isSigninTime) {
+                // 計算下次簽到時間
+                const nextSaturday = getNextSigninTime();
+                const timeDiff = nextSaturday - now;
+                const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const mins = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                const secs = Math.floor((timeDiff % (1000 * 60)) / 1000);
+                
+                if (timeRestrictionNotice) {
+                    timeRestrictionNotice.style.display = 'block';
+                    document.getElementById('nextSigninTime').innerHTML = 
+                        `距離下次簽到時間還有：${days}天 ${hours}小時 ${mins}分 ${secs}秒`;
+                }
+                
+                if (countdownTimer) {
+                    countdownTimer.style.display = 'none';
+                }
+            } else {
+                if (timeRestrictionNotice) {
+                    timeRestrictionNotice.style.display = 'none';
+                }
+                
+                // 顯示倒數計時
+                if (countdownTimer) {
+                    countdownTimer.style.display = 'block';
+                    const remainingMins = 60 - minutes;
+                    const remainingSecs = 60 - now.getSeconds();
+                    countdownTimer.innerHTML = `⏱️ 簽到時間剩餘：${remainingMins - 1}分 ${remainingSecs}秒`;
+                }
+            }
+            
+            return isSigninTime;
+        }
+
+        // 取得下次簽到時間
+        function getNextSigninTime() {
+            const now = new Date();
+            const nextSaturday = new Date(now);
+            
+            // 設定為下個週六
+            const daysUntilSaturday = (6 - now.getDay() + 7) % 7 || 7;
+            nextSaturday.setDate(now.getDate() + daysUntilSaturday);
+            
+            // 如果今天是週六但已過簽到時間，則設定為下週六
+            if (now.getDay() === 6 && now.getHours() >= 12) {
+                nextSaturday.setDate(nextSaturday.getDate() + 7);
+            }
+            
+            // 設定時間為 11:00
+            nextSaturday.setHours(11, 0, 0, 0);
+            
+            return nextSaturday;
         }
 
         // 更新同步狀態
@@ -733,8 +905,14 @@
             }
         }
 
-        // 學生簽到（連接 Google Sheets）
-        async function studentSignIn() {
+        // 學生簽到（加入時間限制）
+        async function studentSignIn(override = false) {
+            // 檢查簽到時間（除非是強制簽到）
+            if (!override && !checkSigninTime()) {
+                showMessage('signinMessage', '現在不是簽到時間！請在每週六 11:00-12:00 簽到', 'error');
+                return;
+            }
+            
             const studentIdInput = document.getElementById('studentId').value.trim();
             const week = document.getElementById('weekSelect').value;
             const btn = document.getElementById('signInBtn');
@@ -761,7 +939,11 @@
             btn.innerHTML = '簽到中... <span class="loading"></span>';
             
             try {
-                const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&dateTime=${encodeURIComponent(new Date().toLocaleString('zh-TW'))}`;
+                const dateTime = override ? 
+                    new Date().toLocaleString('zh-TW') + ' (管理員強制簽到)' : 
+                    new Date().toLocaleString('zh-TW');
+                    
+                const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&dateTime=${encodeURIComponent(dateTime)}`;
                 
                 const response = await fetch(url);
                 const result = await response.json();
@@ -778,6 +960,23 @@
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '簽到';
+            }
+        }
+
+        // 強制簽到（教師功能，無視時間限制）
+        function overrideSignIn() {
+            const studentId = prompt('請輸入要強制簽到的學號：');
+            if (studentId) {
+                const student = students.find(s => s.id.toLowerCase() === studentId.toLowerCase());
+                if (student) {
+                    // 設定表單值
+                    document.getElementById('studentId').value = student.id;
+                    document.getElementById('weekSelect').value = currentViewWeek;
+                    // 呼叫簽到函數，傳入 override = true
+                    studentSignIn(true);
+                } else {
+                    alert('查無此學號');
+                }
             }
         }
 
@@ -941,7 +1140,8 @@
         function updateTeacherDashboard() {
             updateAttendanceStats();
             updateAttendanceTable();
-            document.getElementById('currentWeekDisplay').textContent = `第 ${currentViewWeek} 週`;
+            // 同步下拉選單的值
+            document.getElementById('weekDropdown').value = currentViewWeek;
         }
 
         // 更新簽到統計
@@ -1073,15 +1273,6 @@
                 } else {
                     alert('查無此學號');
                 }
-            }
-        }
-
-        // 切換週次
-        function changeWeek(direction) {
-            const newWeek = currentViewWeek + direction;
-            if (newWeek >= 1 && newWeek <= 18) {
-                currentViewWeek = newWeek;
-                refreshData();
             }
         }
 
