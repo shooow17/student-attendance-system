@@ -19,46 +19,34 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
         }
 
         .header {
             background: white;
             border-radius: 10px;
-            padding: 20px;
+            padding: 30px;
             margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
         }
 
         h1 {
             color: #333;
-            text-align: center;
             margin-bottom: 10px;
         }
 
-        .week-info {
-            text-align: center;
+        .date-info {
             color: #666;
-            font-size: 18px;
+            font-size: 16px;
         }
 
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .signin-panel, .attendance-panel {
+        .panel {
             background: white;
             border-radius: 10px;
-            padding: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
 
@@ -70,186 +58,220 @@
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             color: #555;
             font-weight: 500;
         }
 
-        select, input {
+        input, select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
             font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         button {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             background: #667eea;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
 
         button:hover {
             background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
         .message {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .success {
-            background: #48bb78;
-            color: white;
-        }
-
-        .error {
-            background: #f56565;
-            color: white;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: #f7fafc;
             padding: 15px;
             border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-
-        .attendance-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .student-card {
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            font-size: 14px;
-            transition: transform 0.2s;
-        }
-
-        .student-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .signed {
-            background: #48bb78;
-            color: white;
-        }
-
-        .not-signed {
-            background: #e2e8f0;
-            color: #666;
-        }
-
-        .control-buttons {
-            display: flex;
-            gap: 10px;
             margin-bottom: 20px;
-        }
-
-        .control-buttons button {
-            flex: 1;
-        }
-
-        .danger-button {
-            background: #f56565;
-        }
-
-        .danger-button:hover {
-            background: #e53e3e;
-        }
-
-        .export-button {
-            background: #38a169;
-        }
-
-        .export-button:hover {
-            background: #2f855a;
-        }
-
-        .week-selector {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .week-button {
-            width: auto;
-            padding: 8px 16px;
-            font-size: 14px;
-        }
-
-        .current-week {
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .attendance-table {
-            overflow-x: auto;
-            margin-top: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        th {
-            background: #f7fafc;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .signed-cell {
-            color: #48bb78;
+            text-align: center;
             font-weight: 500;
         }
 
-        .not-signed-cell {
-            color: #cbd5e0;
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        .info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+
+        .student-info {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .student-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .attendance-history {
+            margin-top: 20px;
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .week-badge {
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+
+        .week-badge:hover {
+            transform: translateY(-2px);
+        }
+
+        .week-signed {
+            background: #48bb78;
+            color: white;
+        }
+
+        .week-not-signed {
+            background: #e2e8f0;
+            color: #a0aec0;
+        }
+
+        .week-current {
+            background: #667eea;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        .teacher-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .teacher-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .teacher-link a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .panel {
+                padding: 20px;
+            }
+
+            .history-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            }
         }
     </style>
 </head>
@@ -257,114 +279,118 @@
     <div class="container">
         <div class="header">
             <h1>📚 學生線上簽到系統</h1>
-            <div class="week-info" id="weekInfo"></div>
+            <div class="date-info" id="dateInfo"></div>
         </div>
 
-        <div class="main-content">
-            <div class="signin-panel">
-                <h2>簽到區</h2>
+        <div class="panel">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('signin')">簽到</div>
+                <div class="tab" onclick="switchTab('query')">查詢記錄</div>
+            </div>
+
+            <!-- 簽到區域 -->
+            <div id="signinTab" class="tab-content active">
+                <h2>學生簽到</h2>
                 <div id="signinMessage"></div>
                 
                 <div class="form-group">
-                    <label for="studentSelect">選擇學生：</label>
-                    <select id="studentSelect">
-                        <option value="">請選擇...</option>
-                    </select>
+                    <label for="studentId">請輸入學號：</label>
+                    <input type="text" id="studentId" placeholder="例如：BC1210010" autocomplete="off">
                 </div>
 
                 <div class="form-group">
                     <label for="weekSelect">選擇週次：</label>
                     <select id="weekSelect">
-                        <option value="">請選擇...</option>
+                        <option value="">請選擇週次...</option>
                     </select>
                 </div>
 
-                <button onclick="signIn()">簽到</button>
-
-                <div style="margin-top: 30px;">
-                    <h3 style="margin-bottom: 15px; color: #333;">管理功能</h3>
-                    <div class="control-buttons">
-                        <button class="export-button" onclick="exportData()">匯出資料</button>
-                        <button class="danger-button" onclick="clearAllData()">清除所有資料</button>
-                    </div>
-                </div>
+                <button onclick="signIn()">確認簽到</button>
             </div>
 
-            <div class="attendance-panel">
-                <h2>簽到統計</h2>
+            <!-- 查詢區域 -->
+            <div id="queryTab" class="tab-content">
+                <h2>查詢簽到記錄</h2>
+                <div id="queryMessage"></div>
                 
-                <div class="week-selector">
-                    <button class="week-button" onclick="changeWeek(-1)">◀ 上一週</button>
-                    <span class="current-week" id="currentWeekDisplay">第 1 週</span>
-                    <button class="week-button" onclick="changeWeek(1)">下一週 ▶</button>
+                <div class="form-group">
+                    <label for="queryStudentId">請輸入學號：</label>
+                    <input type="text" id="queryStudentId" placeholder="例如：BC1210010" autocomplete="off">
                 </div>
 
-                <div class="stats" id="stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="signedCount">0</div>
-                        <div class="stat-label">已簽到</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="notSignedCount">50</div>
-                        <div class="stat-label">未簽到</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="signedPercentage">0%</div>
-                        <div class="stat-label">簽到率</div>
-                    </div>
-                </div>
+                <button onclick="queryAttendance()">查詢記錄</button>
 
-                <h3 style="margin-bottom: 10px; color: #333;">本週簽到狀況</h3>
-                <div class="attendance-grid" id="attendanceGrid"></div>
-
-                <div class="attendance-table">
-                    <h3 style="margin: 20px 0 10px; color: #333;">詳細簽到記錄</h3>
-                    <table id="attendanceTable">
-                        <thead>
-                            <tr>
-                                <th>學號</th>
-                                <th>姓名</th>
-                                <th>簽到時間</th>
-                                <th>狀態</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendanceTableBody"></tbody>
-                    </table>
-                </div>
+                <div id="queryResult"></div>
             </div>
+        </div>
+
+        <div class="teacher-link">
+            <a href="teacher.html">🔑 教師管理入口</a>
         </div>
     </div>
 
     <script>
-        // 初始化學生資料（50位學生）
-        const students = [];
-        for (let i = 1; i <= 50; i++) {
-            students.push({
-                id: `S${String(i).padStart(3, '0')}`,
-                name: `學生${i}`,
-                number: i
-            });
-        }
+        // 學生資料
+        const students = [
+            { class: "進資管四系3甲", id: "BC1210010", name: "吳榮澤" },
+            { class: "進資工四系3甲", id: "BC1213015", name: "李質華" },
+            { class: "進資工四系3甲", id: "BC1213025", name: "黃凱婷" },
+            { class: "進資工四系3甲", id: "BC1213029", name: "官維哲" },
+            { class: "進資工四系3甲", id: "BC1213037", name: "曾綉媛" },
+            { class: "進資工四系3甲", id: "BC1225101", name: "李宇凡" },
+            { class: "進精工四系3甲", id: "BC1252001", name: "陳凱鵬" },
+            { class: "進精工四系3甲", id: "BC1252002", name: "潘昕慧" },
+            { class: "進精工四系3甲", id: "BC1252003", name: "謝昀展" },
+            { class: "進精工四系3甲", id: "BC1252007", name: "歐子弘" },
+            { class: "進精工四系3甲", id: "BC1252011", name: "周子瑄" },
+            { class: "進精工四系3甲", id: "BC1252015", name: "謝秉翰" },
+            { class: "進精工四系3甲", id: "BC1252018", name: "李音緹" },
+            { class: "進精工四系3甲", id: "BC1252019", name: "賴昱承" },
+            { class: "進精工四系3甲", id: "BC1252020", name: "劉子源" },
+            { class: "進精工四系3甲", id: "BC1252023", name: "傅皓瑋" },
+            { class: "進精工四系3甲", id: "BC1252039", name: "謝秉融" },
+            { class: "進企管二系2甲", id: "BD1109014", name: "黃淑貞" },
+            { class: "進企管二系2甲", id: "BD1109017", name: "陳淑莉" },
+            { class: "進企管二系2甲", id: "BD1109039", name: "李昀" },
+            { class: "進企管二系2甲", id: "BD1109057", name: "陳秀娟" },
+            { class: "進企管二系1甲", id: "BE1109026", name: "葉琬婷" },
+            { class: "進企管二系1甲", id: "BE1109050", name: "陳美琳" },
+            { class: "進企管二系1甲", id: "BE1109051", name: "謝孟倢" },
+            { class: "進企管二系1甲", id: "BE1109053", name: "王人平" },
+            { class: "進企管二系1甲", id: "BE1109054", name: "王俞閔" },
+            { class: "進企管二系1甲", id: "BE1109055", name: "林致娸" },
+            { class: "進企管二系1甲", id: "BE1109057", name: "胡廷佑" },
+            { class: "進企管二系1甲", id: "BE1109058", name: "曾陽" },
+            { class: "進觀休二系1甲", id: "BE1123003", name: "郭祐妤" },
+            { class: "進觀休二系1甲", id: "BE1123013", name: "張佳螢" },
+            { class: "進觀休二系1甲", id: "BE1123020", name: "林宜旻" },
+            { class: "進觀休二系1甲", id: "BE1123040", name: "黃鈺晴" },
+            { class: "進觀休二系1甲", id: "BE1123043", name: "楊慧瑜" },
+            { class: "進觀休二系1甲", id: "BE1123044", name: "簡霈慈" },
+            { class: "進觀休二系1甲", id: "BE1123046", name: "吳佳倫" },
+            { class: "進觀休二系1甲", id: "BE1123047", name: "林家妤" },
+            { class: "進觀休二系1甲", id: "BE1123049", name: "黃思瑜" },
+            { class: "進觀休二系1甲", id: "BE1123050", name: "林雨臻" },
+            { class: "進精工二系1甲", id: "BE1152033", name: "王文杰" },
+            { class: "進精工二系1甲", id: "BE1152034", name: "龍新翰" },
+            { class: "進精工二系1甲", id: "BE1152035", name: "翁郁修" },
+            { class: "進精工二系1甲", id: "BE1152037", name: "安驥" },
+            { class: "進精工二系1甲", id: "BE1152039", name: "蔡文玫" },
+            { class: "進精工二系1甲", id: "BE1152040", name: "曾華晨" },
+            { class: "進精工二系1甲", id: "BE1152041", name: "韓皓如" },
+            { class: "進精工二系1甲", id: "BE1152042", name: "林竑宇" },
+            { class: "進精工二系1甲", id: "BE1152043", name: "李秉學" }
+        ];
 
-        // 初始化週次（假設一學期18週）
-        const weeks = [];
-        for (let i = 1; i <= 18; i++) {
-            weeks.push({
-                week: i,
-                name: `第 ${i} 週`
-            });
-        }
-
-        let currentViewWeek = 1;
         let attendanceData = {};
+        let currentTab = 'signin';
 
         // 初始化
         function init() {
             loadData();
-            populateStudentSelect();
             populateWeekSelect();
-            updateWeekInfo();
-            updateAttendanceView();
+            updateDateInfo();
+            setInterval(updateDateInfo, 60000);
         }
 
         // 載入資料
@@ -380,34 +406,21 @@
             localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
         }
 
-        // 填充學生選單
-        function populateStudentSelect() {
-            const select = document.getElementById('studentSelect');
-            students.forEach(student => {
-                const option = document.createElement('option');
-                option.value = student.id;
-                option.textContent = `${student.id} - ${student.name}`;
-                select.appendChild(option);
-            });
-        }
-
         // 填充週次選單
         function populateWeekSelect() {
             const select = document.getElementById('weekSelect');
-            weeks.forEach(week => {
+            for (let i = 1; i <= 18; i++) {
                 const option = document.createElement('option');
-                option.value = week.week;
-                option.textContent = week.name;
+                option.value = i;
+                option.textContent = `第 ${i} 週`;
                 select.appendChild(option);
-            });
-            // 預設選擇當前週
-            const currentWeek = getCurrentWeek();
-            select.value = currentWeek;
+            }
+            select.value = getCurrentWeek();
         }
 
-        // 取得當前週次（簡單計算，實際應用可能需要根據學期開始日期計算）
+        // 取得當前週次
         function getCurrentWeek() {
-            const startDate = new Date('2024-09-01'); // 假設學期開始日期
+            const startDate = new Date('2024-09-01');
             const now = new Date();
             const diffTime = Math.abs(now - startDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -415,179 +428,181 @@
             return Math.max(1, week);
         }
 
-        // 更新週次資訊
-        function updateWeekInfo() {
+        // 更新日期資訊
+        function updateDateInfo() {
             const now = new Date();
-            const dateStr = now.toLocaleDateString('zh-TW');
-            const timeStr = now.toLocaleTimeString('zh-TW');
-            document.getElementById('weekInfo').textContent = `${dateStr} ${timeStr} | 當前為第 ${getCurrentWeek()} 週`;
+            const dateStr = now.toLocaleDateString('zh-TW', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            });
+            const timeStr = now.toLocaleTimeString('zh-TW', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('dateInfo').textContent = `${dateStr} ${timeStr} | 第 ${getCurrentWeek()} 週`;
+        }
+
+        // 切換分頁
+        function switchTab(tab) {
+            currentTab = tab;
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'signin') {
+                tabs[0].classList.add('active');
+                document.getElementById('signinTab').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('queryTab').classList.add('active');
+            }
         }
 
         // 簽到功能
         function signIn() {
-            const studentId = document.getElementById('studentSelect').value;
+            const studentIdInput = document.getElementById('studentId').value.trim().toUpperCase();
             const week = document.getElementById('weekSelect').value;
-            const messageDiv = document.getElementById('signinMessage');
-
-            if (!studentId || !week) {
-                showMessage('請選擇學生和週次', 'error');
+            
+            if (!studentIdInput) {
+                showMessage('signinMessage', '請輸入學號', 'error');
+                return;
+            }
+            
+            if (!week) {
+                showMessage('signinMessage', '請選擇週次', 'error');
                 return;
             }
 
-            const key = `${week}_${studentId}`;
+            // 查找學生
+            const student = students.find(s => s.id === studentIdInput);
+            if (!student) {
+                showMessage('signinMessage', '查無此學號，請確認輸入是否正確', 'error');
+                return;
+            }
+
+            const key = `${week}_${studentIdInput}`;
             
             // 檢查是否已簽到
             if (attendanceData[key]) {
-                showMessage('該學生本週已經簽到過了！', 'error');
+                showMessage('signinMessage', `${student.name}同學，您在第${week}週已經簽到過了！`, 'error');
                 return;
             }
 
             // 記錄簽到
             attendanceData[key] = {
-                studentId: studentId,
+                studentId: studentIdInput,
+                studentName: student.name,
+                studentClass: student.class,
                 week: week,
                 timestamp: new Date().toISOString(),
                 dateTime: new Date().toLocaleString('zh-TW')
             };
 
             saveData();
-            showMessage('簽到成功！', 'success');
+            showMessage('signinMessage', `簽到成功！${student.name}同學已完成第${week}週簽到`, 'success');
             
-            // 如果簽到的是當前檢視的週次，更新顯示
-            if (parseInt(week) === currentViewWeek) {
-                updateAttendanceView();
+            // 清空輸入
+            document.getElementById('studentId').value = '';
+        }
+
+        // 查詢簽到記錄
+        function queryAttendance() {
+            const studentIdInput = document.getElementById('queryStudentId').value.trim().toUpperCase();
+            
+            if (!studentIdInput) {
+                showMessage('queryMessage', '請輸入學號', 'error');
+                document.getElementById('queryResult').innerHTML = '';
+                return;
             }
 
-            // 清空選擇
-            document.getElementById('studentSelect').value = '';
+            // 查找學生
+            const student = students.find(s => s.id === studentIdInput);
+            if (!student) {
+                showMessage('queryMessage', '查無此學號，請確認輸入是否正確', 'error');
+                document.getElementById('queryResult').innerHTML = '';
+                return;
+            }
+
+            showMessage('queryMessage', '', '');
+            
+            // 建立查詢結果
+            let html = `
+                <div class="student-info">
+                    <h3>學生資訊</h3>
+                    <div class="info-row">
+                        <span class="info-label">班級：</span>
+                        <span class="info-value">${student.class}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">學號：</span>
+                        <span class="info-value">${student.id}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">姓名：</span>
+                        <span class="info-value">${student.name}</span>
+                    </div>
+                </div>
+                <div class="attendance-history">
+                    <h3>簽到記錄</h3>
+                    <div class="history-grid">
+            `;
+
+            const currentWeek = getCurrentWeek();
+            let signedCount = 0;
+
+            for (let week = 1; week <= 18; week++) {
+                const key = `${week}_${studentIdInput}`;
+                const attendance = attendanceData[key];
+                let className = 'week-badge ';
+                let title = '';
+                
+                if (attendance) {
+                    className += 'week-signed';
+                    title = `簽到時間：${attendance.dateTime}`;
+                    signedCount++;
+                } else if (week === currentWeek) {
+                    className += 'week-current';
+                    title = '本週尚未簽到';
+                } else {
+                    className += 'week-not-signed';
+                    title = '未簽到';
+                }
+                
+                html += `<div class="${className}" title="${title}">第${week}週</div>`;
+            }
+
+            html += `
+                    </div>
+                    <div style="margin-top: 20px; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                        <strong>簽到統計：</strong> 已簽到 ${signedCount} 週 / 共 18 週 (簽到率 ${Math.round(signedCount/18*100)}%)
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('queryResult').innerHTML = html;
         }
 
         // 顯示訊息
-        function showMessage(message, type) {
-            const messageDiv = document.getElementById('signinMessage');
+        function showMessage(elementId, message, type) {
+            const messageDiv = document.getElementById(elementId);
+            if (!message) {
+                messageDiv.style.display = 'none';
+                return;
+            }
+            messageDiv.style.display = 'block';
             messageDiv.className = `message ${type}`;
             messageDiv.textContent = message;
-            setTimeout(() => {
-                messageDiv.textContent = '';
-                messageDiv.className = '';
-            }, 3000);
-        }
-
-        // 更新簽到檢視
-        function updateAttendanceView() {
-            const signedStudents = [];
-            const notSignedStudents = [];
-
-            students.forEach(student => {
-                const key = `${currentViewWeek}_${student.id}`;
-                if (attendanceData[key]) {
-                    signedStudents.push(student);
-                } else {
-                    notSignedStudents.push(student);
-                }
-            });
-
-            // 更新統計
-            document.getElementById('signedCount').textContent = signedStudents.length;
-            document.getElementById('notSignedCount').textContent = notSignedStudents.length;
-            document.getElementById('signedPercentage').textContent = 
-                Math.round((signedStudents.length / students.length) * 100) + '%';
-
-            // 更新網格顯示
-            const grid = document.getElementById('attendanceGrid');
-            grid.innerHTML = '';
             
-            students.forEach(student => {
-                const card = document.createElement('div');
-                const key = `${currentViewWeek}_${student.id}`;
-                const isSigned = attendanceData[key];
-                card.className = `student-card ${isSigned ? 'signed' : 'not-signed'}`;
-                card.textContent = student.name;
-                card.title = isSigned ? `簽到時間: ${attendanceData[key].dateTime}` : '未簽到';
-                grid.appendChild(card);
-            });
-
-            // 更新表格顯示
-            updateAttendanceTable(signedStudents);
-
-            // 更新週次顯示
-            document.getElementById('currentWeekDisplay').textContent = `第 ${currentViewWeek} 週`;
-        }
-
-        // 更新簽到表格
-        function updateAttendanceTable(signedStudents) {
-            const tbody = document.getElementById('attendanceTableBody');
-            tbody.innerHTML = '';
-
-            students.forEach(student => {
-                const row = tbody.insertRow();
-                const key = `${currentViewWeek}_${student.id}`;
-                const attendance = attendanceData[key];
-
-                row.insertCell(0).textContent = student.id;
-                row.insertCell(1).textContent = student.name;
-                
-                if (attendance) {
-                    row.insertCell(2).textContent = attendance.dateTime;
-                    const statusCell = row.insertCell(3);
-                    statusCell.textContent = '✓ 已簽到';
-                    statusCell.className = 'signed-cell';
-                } else {
-                    row.insertCell(2).textContent = '-';
-                    const statusCell = row.insertCell(3);
-                    statusCell.textContent = '未簽到';
-                    statusCell.className = 'not-signed-cell';
-                }
-            });
-        }
-
-        // 切換週次檢視
-        function changeWeek(direction) {
-            const newWeek = currentViewWeek + direction;
-            if (newWeek >= 1 && newWeek <= 18) {
-                currentViewWeek = newWeek;
-                updateAttendanceView();
+            if (type !== 'info') {
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, 5000);
             }
         }
-
-        // 匯出資料
-        function exportData() {
-            let csv = '週次,學號,姓名,簽到時間\n';
-            
-            for (let week = 1; week <= 18; week++) {
-                students.forEach(student => {
-                    const key = `${week}_${student.id}`;
-                    const attendance = attendanceData[key];
-                    csv += `${week},${student.id},${student.name},${attendance ? attendance.dateTime : '未簽到'}\n`;
-                });
-            }
-
-            // 建立下載連結
-            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `簽到記錄_${new Date().toLocaleDateString('zh-TW')}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            showMessage('資料已匯出！', 'success');
-        }
-
-        // 清除所有資料
-        function clearAllData() {
-            if (confirm('確定要清除所有簽到資料嗎？此操作無法復原！')) {
-                attendanceData = {};
-                saveData();
-                updateAttendanceView();
-                showMessage('所有資料已清除', 'success');
-            }
-        }
-
-        // 每分鐘更新時間
-        setInterval(updateWeekInfo, 60000);
 
         // 初始化系統
         init();
