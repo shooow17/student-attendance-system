@@ -132,6 +132,11 @@
             color: white;
         }
 
+        .warning {
+            background: #ed8936;
+            color: white;
+        }
+
         .info {
             background: #4299e1;
             color: white;
@@ -236,6 +241,7 @@
             align-items: center;
             gap: 10px;
             margin-bottom: 20px;
+            justify-content: center;
         }
 
         .week-button {
@@ -247,6 +253,7 @@
             font-weight: bold;
             color: #667eea;
             padding: 0 20px;
+            font-size: 18px;
         }
 
         .attendance-table {
@@ -286,13 +293,10 @@
         }
 
         .control-buttons {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 10px;
             margin-top: 20px;
-        }
-
-        .control-buttons button {
-            flex: 1;
         }
 
         .export-button {
@@ -324,6 +328,7 @@
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 20px;
+            justify-content: center;
         }
 
         .filter-button {
@@ -350,6 +355,15 @@
             background: #5a67d8;
         }
 
+        .data-warning {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
         @media (max-width: 768px) {
             .stats {
                 grid-template-columns: 1fr;
@@ -360,10 +374,14 @@
             }
 
             .control-buttons {
-                flex-direction: column;
+                grid-template-columns: 1fr;
             }
 
             .class-filter {
+                flex-direction: column;
+            }
+
+            .week-selector {
                 flex-direction: column;
             }
         }
@@ -373,6 +391,9 @@
     <div class="container">
         <div class="header">
             <h1>📚 學生線上簽到系統</h1>
+            <div style="text-align: center; color: #666; margin-top: 10px;">
+                <span id="currentDateTime"></span>
+            </div>
         </div>
 
         <div class="tab-container">
@@ -410,6 +431,10 @@
                             3. 每週只能簽到一次
                         </p>
                     </div>
+
+                    <div class="data-warning" style="margin-top: 20px;">
+                        <strong>⚠️ 注意：</strong>資料儲存在瀏覽器本地，清除瀏覽器資料會遺失簽到記錄。
+                    </div>
                 </div>
             </div>
 
@@ -432,6 +457,7 @@
 
             <!-- 教師管理頁面 -->
             <div id="teacherTab" class="tab-content">
+                <!-- 登入介面 -->
                 <div id="teacherLogin" class="login-panel">
                     <h2 style="text-align: center; margin-bottom: 20px; color: #333;">教師登入</h2>
                     <div id="loginMessage"></div>
@@ -442,20 +468,29 @@
                     </div>
 
                     <button class="full-width-button" onclick="teacherLogin()">登入</button>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px;">
+                        <p style="color: #666; font-size: 14px;">
+                            預設密碼：admin123
+                        </p>
+                    </div>
                 </div>
 
+                <!-- 管理介面 -->
                 <div id="teacherDashboard" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
                         <h2 style="color: #333;">簽到管理系統</h2>
                         <button onclick="teacherLogout()" style="background: #718096;">登出</button>
                     </div>
 
+                    <!-- 週次選擇器 -->
                     <div class="week-selector">
                         <button class="week-button" onclick="changeWeek(-1)">◀ 上一週</button>
                         <span class="current-week" id="currentWeekDisplay">第 1 週</span>
                         <button class="week-button" onclick="changeWeek(1)">下一週 ▶</button>
                     </div>
 
+                    <!-- 統計資料 -->
                     <div class="stats" id="stats">
                         <div class="stat-card">
                             <div class="stat-number" id="signedCount">0</div>
@@ -475,17 +510,19 @@
                         </div>
                     </div>
 
+                    <!-- 班級篩選 -->
                     <div class="class-filter">
-                        <button class="filter-button active" onclick="filterByClass('all')">全部班級</button>
-                        <button class="filter-button" onclick="filterByClass('進資管四系3甲')">進資管四系3甲</button>
-                        <button class="filter-button" onclick="filterByClass('進資工四系3甲')">進資工四系3甲</button>
-                        <button class="filter-button" onclick="filterByClass('進精工四系3甲')">進精工四系3甲</button>
-                        <button class="filter-button" onclick="filterByClass('進企管二系2甲')">進企管二系2甲</button>
-                        <button class="filter-button" onclick="filterByClass('進企管二系1甲')">進企管二系1甲</button>
-                        <button class="filter-button" onclick="filterByClass('進觀休二系1甲')">進觀休二系1甲</button>
-                        <button class="filter-button" onclick="filterByClass('進精工二系1甲')">進精工二系1甲</button>
+                        <button class="filter-button active" onclick="filterByClass('all', this)">全部班級</button>
+                        <button class="filter-button" onclick="filterByClass('進資管四系3甲', this)">進資管四系3甲</button>
+                        <button class="filter-button" onclick="filterByClass('進資工四系3甲', this)">進資工四系3甲</button>
+                        <button class="filter-button" onclick="filterByClass('進精工四系3甲', this)">進精工四系3甲</button>
+                        <button class="filter-button" onclick="filterByClass('進企管二系2甲', this)">進企管二系2甲</button>
+                        <button class="filter-button" onclick="filterByClass('進企管二系1甲', this)">進企管二系1甲</button>
+                        <button class="filter-button" onclick="filterByClass('進觀休二系1甲', this)">進觀休二系1甲</button>
+                        <button class="filter-button" onclick="filterByClass('進精工二系1甲', this)">進精工二系1甲</button>
                     </div>
 
+                    <!-- 簽到記錄表格 -->
                     <div class="attendance-table">
                         <h3 style="margin: 20px 0 10px; color: #333;">詳細簽到記錄</h3>
                         <table>
@@ -496,15 +533,19 @@
                                     <th>姓名</th>
                                     <th>簽到時間</th>
                                     <th>狀態</th>
+                                    <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody id="attendanceTableBody"></tbody>
                         </table>
                     </div>
 
+                    <!-- 控制按鈕 -->
                     <div class="control-buttons">
-                        <button class="export-button" onclick="exportData()">匯出本週資料</button>
-                        <button class="export-button" onclick="exportAllData()">匯出所有資料</button>
+                        <button class="export-button" onclick="exportData()">匯出本週資料 (CSV)</button>
+                        <button class="export-button" onclick="exportAllData()">匯出所有資料 (CSV)</button>
+                        <button onclick="manualSignIn()" style="background: #4299e1;">手動補簽</button>
+                        <button class="danger-button" onclick="clearWeekData()">清除本週資料</button>
                         <button class="danger-button" onclick="clearAllData()">清除所有資料</button>
                     </div>
                 </div>
@@ -570,13 +611,23 @@
         let attendanceData = {};
         let isTeacherLoggedIn = false;
         let currentClassFilter = 'all';
-        const teacherPassword = 'admin123'; // 預設密碼，實際使用時應該要更安全
+        const teacherPassword = 'admin123';
 
         // 初始化
         function init() {
             loadData();
             populateWeekSelect();
             updateCurrentWeek();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        }
+
+        // 更新日期時間
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-TW');
+            const timeStr = now.toLocaleTimeString('zh-TW');
+            document.getElementById('currentDateTime').textContent = `${dateStr} ${timeStr}`;
         }
 
         // 載入資料
@@ -853,13 +904,71 @@
                     const statusCell = row.insertCell(4);
                     statusCell.textContent = '✓ 已簽到';
                     statusCell.className = 'signed-cell';
+                    
+                    // 操作按鈕
+                    const actionCell = row.insertCell(5);
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '取消簽到';
+                    deleteBtn.style.cssText = 'padding: 5px 10px; font-size: 12px; background: #f56565;';
+                    deleteBtn.onclick = () => removeAttendance(student.id, currentViewWeek);
+                    actionCell.appendChild(deleteBtn);
                 } else {
                     row.insertCell(3).textContent = '-';
                     const statusCell = row.insertCell(4);
                     statusCell.textContent = '未簽到';
                     statusCell.className = 'not-signed-cell';
+                    
+                    // 操作按鈕
+                    const actionCell = row.insertCell(5);
+                    const addBtn = document.createElement('button');
+                    addBtn.textContent = '補簽';
+                    addBtn.style.cssText = 'padding: 5px 10px; font-size: 12px; background: #48bb78;';
+                    addBtn.onclick = () => addAttendance(student.id, currentViewWeek);
+                    actionCell.appendChild(addBtn);
                 }
             });
+        }
+
+        // 手動補簽
+        function addAttendance(studentId, week) {
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                const key = `${week}_${student.id}`;
+                attendanceData[key] = {
+                    studentId: student.id,
+                    studentName: student.name,
+                    studentClass: student.class,
+                    week: week,
+                    timestamp: new Date().toISOString(),
+                    dateTime: new Date().toLocaleString('zh-TW') + ' (補簽)'
+                };
+                saveData();
+                updateTeacherDashboard();
+            }
+        }
+
+        // 取消簽到
+        function removeAttendance(studentId, week) {
+            if (confirm('確定要取消此學生的簽到記錄嗎？')) {
+                const key = `${week}_${studentId}`;
+                delete attendanceData[key];
+                saveData();
+                updateTeacherDashboard();
+            }
+        }
+
+        // 手動補簽功能
+        function manualSignIn() {
+            const studentId = prompt('請輸入要補簽的學號：');
+            if (studentId) {
+                const student = students.find(s => s.id.toLowerCase() === studentId.toLowerCase());
+                if (student) {
+                    addAttendance(student.id, currentViewWeek);
+                    alert(`已為 ${student.name} 補簽第 ${currentViewWeek} 週`);
+                } else {
+                    alert('查無此學號');
+                }
+            }
         }
 
         // 切換週次
@@ -872,14 +981,14 @@
         }
 
         // 班級篩選
-        function filterByClass(className) {
+        function filterByClass(className, button) {
             currentClassFilter = className;
             
             // 更新按鈕狀態
-            document.querySelectorAll('.filter-button').forEach(button => {
-                button.classList.remove('active');
+            document.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            button.classList.add('active');
             
             updateTeacherDashboard();
         }
@@ -896,7 +1005,7 @@
                 csv += `${student.class},${student.id},${student.name},${time},${status}\n`;
             });
             
-            downloadCSV(csv, `第${currentViewWeek}週簽到記錄_${new Date().toLocaleDateString('zh-TW')}.csv`);
+            downloadCSV(csv, `第${currentViewWeek}週簽到記錄_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.csv`);
         }
 
         // 匯出所有資料
@@ -913,7 +1022,7 @@
                 });
             }
             
-            downloadCSV(csv, `全學期簽到記錄_${new Date().toLocaleDateString('zh-TW')}.csv`);
+            downloadCSV(csv, `全學期簽到記錄_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.csv`);
         }
 
         // 下載 CSV 檔案
@@ -927,6 +1036,19 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        // 清除本週資料
+        function clearWeekData() {
+            if (confirm(`確定要清除第 ${currentViewWeek} 週的所有簽到資料嗎？`)) {
+                students.forEach(student => {
+                    const key = `${currentViewWeek}_${student.id}`;
+                    delete attendanceData[key];
+                });
+                saveData();
+                updateTeacherDashboard();
+                alert(`第 ${currentViewWeek} 週的資料已清除`);
+            }
         }
 
         // 清除所有資料
@@ -944,12 +1066,14 @@
         // 顯示訊息
         function showMessage(elementId, message, type) {
             const messageDiv = document.getElementById(elementId);
-            messageDiv.className = `message ${type}`;
-            messageDiv.textContent = message;
-            setTimeout(() => {
-                messageDiv.textContent = '';
-                messageDiv.className = '';
-            }, 3000);
+            if (messageDiv) {
+                messageDiv.className = `message ${type}`;
+                messageDiv.textContent = message;
+                setTimeout(() => {
+                    messageDiv.textContent = '';
+                    messageDiv.className = '';
+                }, 3000);
+            }
         }
 
         // 初始化系統
