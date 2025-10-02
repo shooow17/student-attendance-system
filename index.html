@@ -343,6 +343,11 @@
             font-weight: 500;
         }
 
+        .status-off-time {
+            color: #c53030;
+            font-weight: 500;
+        }
+
         .status-not-signed {
             color: #cbd5e0;
         }
@@ -426,6 +431,11 @@
 
         .signed-cell {
             color: #48bb78;
+            font-weight: 500;
+        }
+
+        .off-time-cell {
+            color: #c53030;
             font-weight: 500;
         }
 
@@ -559,7 +569,7 @@
                 🌐 已連接至 Google Sheets（點擊查看連線狀態）
             </div>
             <div id="signinTimeInfo" class="signin-time-info unavailable">
-                ⏰ 簽到時間：每週六 11:00-12:00
+                ⏰ 建議簽到時間：每週六 11:00-12:00
             </div>
         </div>
 
@@ -639,15 +649,9 @@
                             1. 請輸入您的完整學號（不分大小寫）<br>
                             2. 選擇對應的週次進行簽到<br>
                             3. 每週只能簽到一次<br>
-                            4. <strong style="color: #c53030;">簽到時間限制：每週六 11:00-12:00</strong><br>
+                            4. <strong style="color: #c53030;">建議簽到時間：每週六 11:00-12:00（非建議時間簽到將標記為紅色）</strong><br>
                             5. 資料會即時同步至雲端
                         </p>
-                    </div>
-
-                    <div id="timeRestrictionNotice" class="time-restriction-notice" style="display: none;">
-                        <strong>⚠️ 現在不是簽到時間</strong><br>
-                        請在每週六上午 11:00-12:00 進行簽到<br>
-                        <span id="nextSigninTime"></span>
                     </div>
                 </div>
             </div>
@@ -767,7 +771,7 @@
                         <button class="export-button" onclick="exportData()">匯出本週資料 (CSV)</button>
                         <button class="export-button" onclick="exportAllData()">匯出所有資料 (CSV)</button>
                         <button onclick="manualSignIn()" style="background: #4299e1;">手動補簽</button>
-                        <button class="override-button" onclick="overrideSignIn()">強制簽到（無視時間限制）</button>
+                        <button class="override-button" onclick="overrideSignIn()">強制簽到</button>
                         <button class="danger-button" onclick="clearWeekData()">清除本週資料</button>
                         <button class="danger-button" onclick="clearAllData()">清除所有資料</button>
                     </div>
@@ -778,7 +782,6 @@
 
     <script>
         // ============ 重要：請在這裡貼上您的 Google Apps Script 網址 ============
-        // 請將下面這行的網址替換為您的實際網址
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec';
         // =========================================================================
 
@@ -842,7 +845,7 @@
         const teacherPassword = 'admin123';
         let countdownInterval = null;
 
-        // 檢查是否在簽到時間內（修正版：確實執行時間限制）
+        // 檢查是否在建議簽到時間內
         function checkSigninTime() {
             const now = new Date();
             const day = now.getDay(); // 0 = 週日, 6 = 週六
@@ -856,10 +859,10 @@
             const signinTimeInfo = document.getElementById('signinTimeInfo');
             if (isSigninTime) {
                 signinTimeInfo.className = 'signin-time-info available';
-                signinTimeInfo.innerHTML = '✅ 現在是簽到時間（剩餘 ' + (60 - minutes) + ' 分鐘）';
+                signinTimeInfo.innerHTML = '✅ 現在是建議簽到時間（剩餘 ' + (60 - minutes) + ' 分鐘）';
             } else {
                 signinTimeInfo.className = 'signin-time-info unavailable';
-                signinTimeInfo.innerHTML = '⏰ 簽到時間：每週六 11:00-12:00';
+                signinTimeInfo.innerHTML = '⏰ 建議簽到時間：每週六 11:00-12:00';
             }
             
             // 更新簽到頁面的提示
@@ -867,31 +870,12 @@
             const countdownTimer = document.getElementById('countdownTimer');
             
             if (!isSigninTime) {
-                // 計算下次簽到時間
-                const nextSaturday = getNextSigninTime();
-                const timeDiff = nextSaturday - now;
-                const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const mins = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-                const secs = Math.floor((timeDiff % (1000 * 60)) / 1000);
-                
                 if (timeRestrictionNotice) {
-                    timeRestrictionNotice.style.display = 'block';
-                    document.getElementById('nextSigninTime').innerHTML = 
-                        `距離下次簽到時間還有：${days}天 ${hours}小時 ${mins}分 ${secs}秒`;
+                    timeRestrictionNotice.style.display = 'none';
                 }
                 
                 if (countdownTimer) {
                     countdownTimer.style.display = 'none';
-                }
-                
-                // 重要：禁用簽到按鈕
-                const signInBtn = document.getElementById('signInBtn');
-                if (signInBtn && !signInBtn.hasAttribute('data-override')) {
-                    signInBtn.disabled = true;
-                    signInBtn.style.background = '#cbd5e0';
-                    signInBtn.style.cursor = 'not-allowed';
-                    signInBtn.innerHTML = '非簽到時間';
                 }
             } else {
                 if (timeRestrictionNotice) {
@@ -903,17 +887,17 @@
                     countdownTimer.style.display = 'block';
                     const remainingMins = 60 - minutes;
                     const remainingSecs = 60 - now.getSeconds();
-                    countdownTimer.innerHTML = `⏱️ 簽到時間剩餘：${remainingMins - 1}分 ${remainingSecs}秒`;
+                    countdownTimer.innerHTML = `⏱️ 建議簽到時間剩餘：${remainingMins - 1}分 ${remainingSecs}秒`;
                 }
-                
-                // 啟用簽到按鈕
-                const signInBtn = document.getElementById('signInBtn');
-                if (signInBtn) {
-                    signInBtn.disabled = false;
-                    signInBtn.style.background = '#667eea';
-                    signInBtn.style.cursor = 'pointer';
-                    signInBtn.innerHTML = '簽到';
-                }
+            }
+            
+            // 始終啟用簽到按鈕
+            const signInBtn = document.getElementById('signInBtn');
+            if (signInBtn) {
+                signInBtn.disabled = false;
+                signInBtn.style.background = '#667eea';
+                signInBtn.style.cursor = 'pointer';
+                signInBtn.innerHTML = '簽到';
             }
             
             return isSigninTime;
@@ -939,24 +923,9 @@
             return nextSaturday;
         }
 
-        // 學生簽到（修正版：嚴格執行時間限制，不傳送客戶端時間）
+        // 學生簽到
         async function studentSignIn(override = false) {
-            // 檢查簽到時間（除非是強制簽到）
-            if (!override) {
-                const isSigninTime = checkSigninTime();
-                if (!isSigninTime) {
-                    showMessage('signinMessage', '現在不是簽到時間！請在每週六 11:00-12:00 簽到', 'error');
-                    
-                    // 額外的保護：確保按鈕被禁用
-                    const btn = document.getElementById('signInBtn');
-                    btn.disabled = true;
-                    btn.style.background = '#cbd5e0';
-                    btn.innerHTML = '非簽到時間';
-                    
-                    return;
-                }
-            }
-            
+            const isSigninTime = checkSigninTime();
             const studentIdInput = document.getElementById('studentId').value.trim();
             const week = document.getElementById('weekSelect').value;
             const btn = document.getElementById('signInBtn');
@@ -989,14 +958,13 @@
             btn.innerHTML = '簽到中... <span class="loading"></span>';
             
             try {
-                // 不再傳送客戶端時間，讓伺服器自己記錄時間
-                const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&override=${override}`;
+                const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&override=${override}&isOnTime=${isSigninTime}`;
                 
                 const response = await fetch(url);
                 const result = await response.json();
                 
                 if (result.success) {
-                    showMessage('signinMessage', `簽到成功！${student.name}同學，您已完成第${week}週的簽到。`, 'success');
+                    showMessage('signinMessage', `簽到成功！${student.name}同學，您已完成第${week}週的簽到。${!isSigninTime && !override ? '（非建議時間簽到）' : ''}`, 'success');
                     document.getElementById('studentId').value = '';
                 } else {
                     showMessage('signinMessage', result.message || '簽到失敗', 'error');
@@ -1005,22 +973,9 @@
                 showMessage('signinMessage', '網路錯誤，請稍後再試', 'error');
                 updateSyncStatus(false);
             } finally {
-                // 根據時間狀態恢復按鈕
-                if (!override) {
-                    const isSigninTime = checkSigninTime();
-                    if (!isSigninTime) {
-                        btn.disabled = true;
-                        btn.style.background = '#cbd5e0';
-                        btn.innerHTML = '非簽到時間';
-                    } else {
-                        btn.disabled = false;
-                        btn.style.background = '#667eea';
-                        btn.innerHTML = '簽到';
-                    }
-                } else {
-                    btn.disabled = false;
-                    btn.innerHTML = '簽到';
-                }
+                btn.disabled = false;
+                btn.style.background = '#667eea';
+                btn.innerHTML = '簽到';
             }
         }
 
@@ -1302,18 +1257,20 @@
             
             let signedWeeks = {};
             attendanceRecords.forEach(record => {
-                signedWeeks[record.week] = record.dateTime;
+                signedWeeks[record.week] = { dateTime: record.dateTime, isOnTime: record.isOnTime };
             });
             
             let signedCount = 0;
             for (let week = 1; week <= getCurrentWeek(); week++) {
                 if (signedWeeks[week]) {
                     signedCount++;
+                    const statusText = signedWeeks[week].isOnTime ? '✓ 已簽到' : '⚠️ 非建議時間簽到';
+                    const statusClass = signedWeeks[week].isOnTime ? 'status-signed' : 'status-off-time';
                     html += `
                         <tr>
                             <td>第 ${week} 週</td>
-                            <td>${signedWeeks[week]}</td>
-                            <td class="status-signed">✓ 已簽到</td>
+                            <td>${signedWeeks[week].dateTime}</td>
+                            <td class="${statusClass}">${statusText}</td>
                         </tr>
                     `;
                 } else {
@@ -1454,8 +1411,8 @@
                 if (attendance) {
                     row.insertCell(3).textContent = attendance.dateTime;
                     const statusCell = row.insertCell(4);
-                    statusCell.textContent = '✓ 已簽到';
-                    statusCell.className = 'signed-cell';
+                    statusCell.textContent = attendance.isOnTime ? '✓ 已簽到' : '⚠️ 非建議時間簽到';
+                    statusCell.className = attendance.isOnTime ? 'signed-cell' : 'off-time-cell';
                     
                     const actionCell = row.insertCell(5);
                     const deleteBtn = document.createElement('button');
@@ -1491,12 +1448,12 @@
             updateTeacherDashboard();
         }
 
-        // 手動補簽（修正版：使用伺服器時間）
+        // 手動補簽
         async function addAttendance(studentId, week) {
             const student = students.find(s => s.id === studentId);
             if (student) {
                 try {
-                    const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&override=true`;
+                    const url = `${SCRIPT_URL}?action=signin&week=${week}&studentClass=${encodeURIComponent(student.class)}&studentId=${student.id}&studentName=${encodeURIComponent(student.name)}&override=true&isOnTime=true`;
                     
                     const response = await fetch(url);
                     const result = await response.json();
@@ -1543,27 +1500,15 @@
             }
         }
 
-        // 強制簽到（教師功能，無視時間限制）
+        // 強制簽到
         function overrideSignIn() {
-            const studentId = prompt('請輸入要強制簽到的學號（無視時間限制）：');
+            const studentId = prompt('請輸入要強制簽到的學號：');
             if (studentId) {
                 const student = students.find(s => s.id.toLowerCase() === studentId.toLowerCase());
                 if (student) {
-                    // 設定表單值
                     document.getElementById('studentId').value = student.id;
                     document.getElementById('weekSelect').value = currentViewWeek;
-                    
-                    // 暫時標記按鈕為 override 模式
-                    const btn = document.getElementById('signInBtn');
-                    btn.setAttribute('data-override', 'true');
-                    
-                    // 呼叫簽到函數，傳入 override = true
-                    studentSignIn(true).then(() => {
-                        // 移除 override 標記
-                        btn.removeAttribute('data-override');
-                        // 恢復按鈕狀態
-                        checkSigninTime();
-                    });
+                    studentSignIn(true);
                 } else {
                     alert('查無此學號');
                 }
@@ -1585,7 +1530,7 @@
             
             students.forEach(student => {
                 const attendance = attendanceMap[student.id.toLowerCase()];
-                const status = attendance ? '已簽到' : '未簽到';
+                const status = attendance ? (attendance.isOnTime ? '已簽到' : '非建議時間簽到') : '未簽到';
                 const time = attendance ? attendance.dateTime : '-';
                 csv += `${student.class},${student.id},${student.name},${time},${status}\n`;
             });
@@ -1613,7 +1558,7 @@
                         students.forEach(student => {
                             const key = `${week}_${student.id.toLowerCase()}`;
                             const attendance = attendanceMap[key];
-                            const status = attendance ? '已簽到' : '未簽到';
+                            const status = attendance ? (attendance.isOnTime ? '已簽到' : '非建議時間簽到') : '未簽到';
                             const time = attendance ? attendance.dateTime : '-';
                             csv += `第${week}週,${student.class},${student.id},${student.name},${time},${status}\n`;
                         });
