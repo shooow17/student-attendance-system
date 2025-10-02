@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學生數位簽到系統5</title>
+    <title>學生數位簽到系統6</title>
     <style>
         /* 基礎排版與容器 */
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
@@ -74,12 +74,62 @@
             background-color: #f0f0f0; /* 淺灰色背景 (未簽到) */
             color: #666;
         }
+
+        /* 新增：週次分頁樣式 */
+        .week-tabs {
+            display: flex;
+            overflow-x: auto; /* 允許橫向滾動 */
+            white-space: nowrap; /* 防止換行 */
+            margin-bottom: 10px;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 0;
+            padding-left: 0;
+        }
+        .week-tabs button {
+            background: #f1f1f1;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 10px 15px;
+            transition: 0.3s;
+            font-size: 16px;
+            margin-right: 2px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            border: 1px solid #ccc;
+            border-bottom: none;
+        }
+        .week-tabs button:hover {
+            background-color: #ddd;
+        }
+        .week-tabs button.active {
+            background-color: white;
+            color: #3498db;
+            border-top: 2px solid #3498db;
+            border-left: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+            border-bottom: 2px solid white; /* 蓋住下面的線 */
+            font-weight: bold;
+        }
+        .week-content {
+            border: 1px solid #ccc;
+            border-top: none;
+            padding: 15px 0;
+            min-height: 100px;
+        }
+        .week-pane {
+            display: none;
+            padding: 10px;
+        }
+        .week-pane.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>學生數位簽到系統5</h1>
+    <h1>學生數位簽到系統6</h1>
     <div class="nav-bar">
         <button id="show-checkin-btn" class="active">學生簽到</button>
         <button id="show-student-query-btn">學生查詢</button>
@@ -356,8 +406,8 @@
         let html = '<table><thead><tr><th>週次</th><th>班級</th><th>簽到時間</th><th>完整時間戳記</th><th>狀態</th></tr></thead><tbody>';
         
         records.forEach(r => {
-            const rowClass = r.validity === 'Invalid' ? 'class="invalid-checkin"' : '';
-            const statusText = r.validity === 'Invalid' ? '非簽到時間' : (r.validity === 'Valid (Manual)' ? '補簽' : '正常');
+            const rowClass = r.validity.startsWith('Invalid') ? 'class="invalid-checkin"' : '';
+            const statusText = r.validity.startsWith('Invalid') ? '非簽到時間' : (r.validity === 'Valid (Manual)' ? '補簽' : '正常');
             
             html += `<tr ${rowClass}>
                 <td>${r.week}</td>
@@ -382,7 +432,7 @@
         const submitBtn = this.querySelector('button[type="submit"]');
         
         submitBtn.disabled = true;
-        displayDiv.innerHTML = '載入中...';
+        displayDiv.innerHTML = '<p style="text-align:center;">載入中...</p>';
         adminTools.style.display = 'none';
         
         const result = await callAppsScript('teacherQuery', { 
@@ -392,7 +442,7 @@
 
         if (result.status === 'success') {
             showMessage(messageDiv, `登入成功！已載入 ${Object.keys(result.summary).length} 週的簽到狀態。`, 'success');
-            renderTeacherSummary(result.summary, displayDiv);
+            renderTeacherSummary(result.summary, result.sortedWeeks, displayDiv);
             adminTools.style.display = 'block'; // 顯示管理工具
         } else {
             showMessage(messageDiv, result.message, 'error');
@@ -403,38 +453,70 @@
         submitBtn.disabled = false;
     });
 
-    // --- 教師查詢渲染 (包含詳細時間/次數) ---
-    function renderTeacherSummary(summary, divElement) {
-        let html = '';
-        const weeks = Object.keys(summary).sort((a, b) => parseInt(a) - parseInt(b));
-
-        if (weeks.length === 0) {
+    // --- 教師查詢渲染 (週次分頁切換) ---
+    function renderTeacherSummary(summary, sortedWeeks, divElement) {
+        if (sortedWeeks.length === 0) {
              divElement.innerHTML = '<p>目前沒有任何簽到記錄。</p>';
              return;
         }
 
-        weeks.forEach(week => {
-            html += `<h3>第 ${week} 週全體簽到狀況</h3>`;
-            html += '<table><thead><tr><th>班級</th><th>學號</th><th>姓名</th><th>簽到情況</th></tr></thead><tbody>';
-            
-            const students = summary[week];
+        let tabsHtml = '<div class="week-tabs">';
+        let contentHtml = '<div class="week-content">';
 
+        sortedWeeks.forEach((week, index) => {
+            const weekId = `week-pane-${week}`;
+            const isActive = index === sortedWeeks.length - 1; // 預設顯示最新一週
+
+            // Tab 按鈕
+            tabsHtml += `<button class="week-tab-btn ${isActive ? 'active' : ''}" data-week="${week}">第 ${week} 週</button>`;
+
+            // Tab 內容
+            const students = summary[week];
+            contentHtml += `<div id="${weekId}" class="week-pane ${isActive ? 'active' : ''}">`;
+            contentHtml += `<h3>第 ${week} 週全體簽到狀況</h3>`;
+            contentHtml += '<table><thead><tr><th>班級</th><th>學號</th><th>姓名</th><th>簽到情況</th></tr></thead><tbody>';
+            
             students.forEach(student => {
                 const rowClass = `class="${student.statusClass}"`;
 
-                html += `<tr ${rowClass}>
+                contentHtml += `<tr ${rowClass}>
                     <td>${student.classId}</td>
                     <td>${student.studentId}</td>
                     <td>${student.studentName}</td>
                     <td>${student.status}</td>
                 </tr>`;
             });
-            html += '</tbody></table>';
+            contentHtml += '</tbody></table></div>';
         });
 
-        divElement.innerHTML = html;
+        tabsHtml += '</div>';
+        contentHtml += '</div>';
+        
+        divElement.innerHTML = tabsHtml + contentHtml;
+        
+        // 新增 Tab 切換事件監聽
+        document.querySelectorAll('.week-tab-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const targetWeek = this.getAttribute('data-week');
+                
+                // 隱藏所有內容，移除所有按鈕的 active 樣式
+                document.querySelectorAll('.week-pane').forEach(pane => pane.classList.remove('active'));
+                document.querySelectorAll('.week-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+                // 顯示目標內容，設定目標按鈕的 active 樣式
+                document.getElementById(`week-pane-${targetWeek}`).classList.add('active');
+                this.classList.add('active');
+            });
+        });
+
+        // 預設滾動到最新一週的 Tab 按鈕 (如果數量太多)
+        const activeTab = document.querySelector('.week-tabs .active');
+        if(activeTab) {
+            activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
     }
-    
+
+
     // --- [功能 1] 清除單週資料事件 ---
     document.getElementById('clear-week-btn').addEventListener('click', async function() {
         const password = document.getElementById('teacher-password').value.trim();
