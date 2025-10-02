@@ -2,73 +2,207 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>學生簽到系統4</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學生簽到系統</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        form { max-width: 400px; margin: auto; }
-        label { display: block; margin: 10px 0 5px; }
-        input { width: 100%; padding: 8px; margin-bottom: 10px; }
-        button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:hover { background: #45a049; }
-        #message { margin-top: 20px; color: green; }
-        #error { margin-top: 20px; color: red; }
+        /* 基礎樣式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+
+        /* 輸入框樣式 */
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1em;
+            text-align: center;
+        }
+
+        /* 按鈕樣式 */
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 14px 20px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        /* 訊息區塊樣式 */
+        #message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            display: none; /* 預設隱藏 */
+            word-wrap: break-word;
+        }
+
+        .success {
+            background-color: #e6f7e9;
+            color: #27ae60;
+            border: 1px solid #2ecc71;
+        }
+
+        .error {
+            background-color: #fce7e7;
+            color: #e74c3c;
+            border: 1px solid #c0392b;
+        }
+
+        /* 簽到成功的特殊樣式 */
+        #welcome-message {
+            margin-top: 10px;
+            font-size: 1.2em;
+            color: #2c3e50;
+        }
+
     </style>
 </head>
 <body>
-    <h1>學生簽到系統4</h1>
-    <form id="signInForm">
-        <label for="week">週次：</label>
-        <input type="number" id="week" name="week" required min="1">
 
-        <label for="class">班級：</label>
-        <input type="text" id="class" name="class" required>
-
-        <label for="id">學號：</label>
-        <input type="text" id="id" name="id" required>
-
-        <label for="name">姓名：</label>
-        <input type="text" id="name" name="name" required>
-
-        <button type="button" onclick="signIn()">簽到</button>
+<div class="container">
+    <h1>學生快速簽到</h1>
+    
+    <form id="attendanceForm">
+        <input type="text" id="studentId" name="studentId" placeholder="請輸入您的學號" required autofocus>
+        <button type="submit" id="submitBtn">立即簽到</button>
     </form>
-
+    
     <div id="message"></div>
-    <div id="error"></div>
+    <div id="welcome-message"></div>
 
-    <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec';
+</div>
 
-        async function signIn() {
-            console.log('開始簽到');
-            const week = document.getElementById('week').value;
-            const className = document.getElementById('class').value;
-            const id = document.getElementById('id').value;
-            const name = document.getElementById('name').value;
-            console.log('發送資料:', { week, className, id, name });
+<script>
+    // **重要：替換成你部署 Apps Script 服務後得到的 URL**
+    const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec';
 
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ week, className, id, name })
-                });
-                if (!response.ok) {
-                    throw new Error(`HTTP 錯誤！狀態碼：${response.status}`);
-                }
-                const result = await response.json();
-                if (result.success) {
-                    document.getElementById('message').innerText = result.message;
-                    document.getElementById('error').innerText = '';
-                } else {
-                    document.getElementById('error').innerText = result.message;
-                    document.getElementById('message').innerText = '';
-                }
-            } catch (error) {
-                document.getElementById('error').innerText = `簽到失敗：${error.message} (狀態碼：${error.cause?.status || '未知'}, 請檢查控制台)`;
-                document.getElementById('message').innerText = '';
-                console.error('簽到錯誤：', error);
-            }
+    const form = document.getElementById('attendanceForm');
+    const studentIdInput = document.getElementById('studentId');
+    const submitBtn = document.getElementById('submitBtn');
+    const messageDiv = document.getElementById('message');
+    const welcomeMessageDiv = document.getElementById('welcome-message');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault(); // 阻止表單傳統提交
+
+        const studentId = studentIdInput.value.trim();
+        if (studentId === "") {
+            showMessage('error', '學號不能為空！');
+            return;
         }
-    </script>
+
+        // 鎖定按鈕避免重複提交
+        submitBtn.disabled = true;
+        submitBtn.textContent = '簽到中...';
+        messageDiv.style.display = 'none';
+        welcomeMessageDiv.textContent = '';
+        
+        // 準備提交的資料
+        const formData = { studentId: studentId };
+
+        // 使用 fetch API 向 Apps Script 服務發送 POST 請求
+        fetch(APP_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors', // 允許跨域
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            // 將資料轉換成 Apps Script 預期的格式
+            body: new URLSearchParams({
+                action: 'processAttendance', // Apps Script 可以根據這個 action 參數來分流處理
+                ...formData
+            })
+        })
+        .then(response => response.json()) // 解析 JSON 回應
+        .then(data => {
+            console.log('Apps Script Response:', data);
+            
+            if (data.status === 'success') {
+                showMessage('success', data.message);
+                
+                // 顯示簽到成功訊息
+                welcomeMessageDiv.textContent = `歡迎 ${data.studentName}！`;
+                
+                // 清空輸入框
+                studentIdInput.value = '';
+                studentIdInput.focus(); // 讓使用者可以快速進行下一個簽到
+
+            } else {
+                showMessage('error', data.message || '簽到失敗，未知錯誤。');
+            }
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+            showMessage('error', '網路連線或系統錯誤，請檢查您的 Apps Script URL。');
+        })
+        .finally(() => {
+            // 無論成功或失敗，最後都解鎖按鈕
+            submitBtn.disabled = false;
+            submitBtn.textContent = '立即簽到';
+        });
+    });
+
+    /**
+     * 顯示結果訊息
+     * @param {string} type - 'success' or 'error'
+     * @param {string} msg - 顯示的訊息內容
+     */
+    function showMessage(type, msg) {
+        messageDiv.className = ''; // 清除現有 class
+        messageDiv.classList.add(type);
+        messageDiv.textContent = msg;
+        messageDiv.style.display = 'block';
+    }
+
+    // 當頁面載入完成，將焦點放在學號輸入框
+    window.onload = () => {
+        studentIdInput.focus();
+    };
+
+</script>
+
 </body>
 </html>
