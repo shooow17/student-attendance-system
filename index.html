@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學生數位簽到系統</title>
+    <title>學生數位簽到系統2</title>
     <style>
         /* 基礎排版與容器 */
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
@@ -50,16 +50,24 @@
         
         /* 規則標註樣式 */
         .invalid-checkin {
-            background-color: #fce7e7; /* 淺紅色背景 */
+            background-color: #fce7e7; /* 淺紅色背景 (非簽到時間) */
             color: #cc0000;          /* 深紅色文字 */
             font-weight: bold;
+        }
+        .checked-in {
+            background-color: #e6ffe6; /* 淺綠色背景 (已簽到) */
+            color: #007700;
+        }
+        .not-checked-in {
+            background-color: #f0f0f0; /* 淺灰色背景 (未簽到) */
+            color: #666;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>學生數位簽到系統</h1>
+    <h1>學生數位簽到系統2</h1>
     <div class="nav-bar">
         <button id="show-checkin-btn" class="active">學生簽到</button>
         <button id="show-student-query-btn">學生查詢</button>
@@ -184,14 +192,13 @@
         const result = await callAppsScript('getWeekOptions', { messageDiv: document.getElementById('checkin-message') });
 
         if (result.status === 'success') {
-            selectElement.innerHTML = ''; // 清空載入中
+            selectElement.innerHTML = ''; 
             result.weeks.forEach(week => {
                 const option = document.createElement('option');
                 option.value = week.value;
                 option.textContent = week.label;
                 selectElement.appendChild(option);
             });
-            // 預設選中最後一週
             selectElement.value = result.weeks[result.weeks.length - 1].value;
             selectElement.disabled = false;
 
@@ -220,7 +227,7 @@
         
         showMessage(messageDiv, result.message, result.status);
         if (result.status === 'success') {
-            document.getElementById('student-id-input').value = ''; // 清空學號欄位
+            document.getElementById('student-id-input').value = ''; 
         }
         
         submitBtn.disabled = false;
@@ -262,7 +269,6 @@
         let html = '<table><thead><tr><th>週次</th><th>班級</th><th>簽到時間</th><th>完整時間戳記</th><th>狀態</th></tr></thead><tbody>';
         
         records.forEach(r => {
-            // 根據 validity 判斷是否使用紅色註記
             const rowClass = r.validity === 'Invalid' ? 'class="invalid-checkin"' : '';
             const statusText = r.validity === 'Invalid' ? '非簽到時間' : '正常';
             
@@ -296,7 +302,7 @@
         });
 
         if (result.status === 'success') {
-            showMessage(messageDiv, `登入成功！已載入所有 ${Object.keys(result.summary).length} 週的簽到資料。`, 'success');
+            showMessage(messageDiv, `登入成功！已載入 ${Object.keys(result.summary).length} 週的簽到狀態。`, 'success');
             renderTeacherSummary(result.summary, displayDiv);
         } else {
             showMessage(messageDiv, result.message, 'error');
@@ -316,36 +322,19 @@
         }
 
         weeks.forEach(week => {
-            html += `<h3>第 ${week} 週簽到狀況</h3>`;
-            html += '<table><thead><tr><th>班級</th><th>學號</th><th>姓名</th><th>合法簽到次數 / 總次數</th><th>最近簽到時間 (狀態)</th></tr></thead><tbody>';
+            html += `<h3>第 ${week} 週全體簽到狀況 (以學生名單為基準)</h3>`;
+            html += '<table><thead><tr><th>班級</th><th>學號</th><th>姓名</th><th>簽到情況</th></tr></thead><tbody>';
             
             const students = summary[week];
-            const studentIds = Object.keys(students);
 
-            studentIds.forEach(id => {
-                const student = students[id];
-                
-                // 計算合法簽到次數和總次數
-                const validCount = student.checkInTimes.filter(t => t.validity === 'Valid').length;
-                const totalCount = student.checkInTimes.length;
-                
-                // 找到最晚的簽到記錄
-                const latestRecord = student.checkInTimes.reduce((latest, current) => {
-                    return current.fullTimestamp > latest.fullTimestamp ? current : latest;
-                });
-                
-                // 判斷是否使用紅色註記
-                const latestStatusClass = latestRecord.validity === 'Invalid' ? 'class="invalid-checkin"' : '';
-                const latestStatusText = latestRecord.validity === 'Invalid' 
-                                            ? `${latestRecord.fullTimestamp} (非簽到時間)` 
-                                            : latestRecord.fullTimestamp;
+            students.forEach(student => {
+                const rowClass = `class="${student.statusClass}"`;
 
-                html += `<tr ${latestStatusClass}>
+                html += `<tr ${rowClass}>
                     <td>${student.classId}</td>
-                    <td>${id}</td>
+                    <td>${student.studentId}</td>
                     <td>${student.studentName}</td>
-                    <td>${validCount} / ${totalCount} 次</td>
-                    <td>${latestStatusText}</td>
+                    <td>${student.status}</td>
                 </tr>`;
             });
             html += '</tbody></table>';
