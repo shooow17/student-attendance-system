@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>學生簽到系統01</title>
+    <title>學生簽到系統2</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         form { max-width: 400px; margin: auto; }
@@ -15,7 +15,7 @@
     </style>
 </head>
 <body>
-    <h1>學生簽到系統</h1>
+    <h1>學生簽到系統2</h1>
     <form id="signInForm">
         <label for="week">週次：</label>
         <input type="number" id="week" name="week" required min="1">
@@ -62,7 +62,7 @@
                     document.getElementById('message').innerText = '';
                 }
             } catch (error) {
-                document.getElementById('error').innerText = `簽到失敗：${error.message}`;
+                document.getElementById('error').innerText = `簽到失敗：${error.message} (請檢查控制台)`;
                 document.getElementById('message').innerText = '';
                 console.error('簽到錯誤：', error);
             }
