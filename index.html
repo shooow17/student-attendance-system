@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>學生簽到系統</title>
+    <title>學生簽到系統01</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         form { max-width: 400px; margin: auto; }
@@ -36,7 +36,7 @@
     <div id="error"></div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
 
         async function signIn() {
             const week = document.getElementById('week').value;
@@ -50,6 +50,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ week, className, id, name })
                 });
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤！狀態碼：${response.status}`);
+                }
                 const result = await response.json();
                 if (result.success) {
                     document.getElementById('message').innerText = result.message;
@@ -59,8 +62,9 @@
                     document.getElementById('message').innerText = '';
                 }
             } catch (error) {
-                document.getElementById('error').innerText = '簽到失敗，請稍後再試。';
+                document.getElementById('error').innerText = `簽到失敗：${error.message}`;
                 document.getElementById('message').innerText = '';
+                console.error('簽到錯誤：', error);
             }
         }
     </script>
