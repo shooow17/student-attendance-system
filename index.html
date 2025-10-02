@@ -120,7 +120,7 @@
                 <label for="week">週次：</label>
                 <select id="week">
                     <option value="">選擇週次</option>
-                    <option value="1">第1週(1141004)</option>
+                    <option value="1">第1週</option>
                     <option value="2">第2週</option>
                     <option value="3">第3週</option>
                     <option value="4">第4週</option>
@@ -201,7 +201,11 @@
                 return;
             }
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=signin&studentId=${encodeURIComponent(studentId)}&week=${week}`);
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'signin', studentId, week })
+                });
                 const result = await response.json();
                 showMessage('studentMessage', result.message, result.success ? 'success' : 'error');
                 if (result.success) {
@@ -220,7 +224,11 @@
                 return;
             }
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=query&studentId=${encodeURIComponent(studentId)}`);
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'query', studentId })
+                });
                 const result = await response.json();
                 if (result.success) {
                     const table = document.createElement('table');
@@ -243,13 +251,17 @@
         }
         
         async function teacherLogin() {
-            const password = document.getElementById('teacherPassword').value;
+            const password = document.getElementById('teacherPassword').value.trim();
             if (!password) {
                 showMessage('teacherMessage', '請填寫密碼', 'error');
                 return;
             }
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=teacherLogin&password=${encodeURIComponent(password)}`);
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'teacherLogin', password })
+                });
                 const result = await response.json();
                 if (result.success) {
                     document.getElementById('teacherLogin').style.display = 'none';
@@ -277,8 +289,8 @@
         }
         
         async function updatePassword() {
-            const oldPassword = document.getElementById('oldPassword').value;
-            const newPassword = document.getElementById('newPassword').value;
+            const oldPassword = document.getElementById('oldPassword').value.trim();
+            const newPassword = document.getElementById('newPassword').value.trim();
             if (!oldPassword || !newPassword) {
                 showMessage('teacherMessage', '請填寫舊密碼和新密碼', 'error');
                 return;
@@ -288,7 +300,11 @@
                 return;
             }
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=updateTeacherPassword&oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}`);
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'updateTeacherPassword', oldPassword, newPassword })
+                });
                 const result = await response.json();
                 showMessage('teacherMessage', result.message, result.success ? 'success' : 'error');
                 if (result.success) {
@@ -306,7 +322,11 @@
         async function getAllAttendance() {
             const week = document.getElementById('teacherWeek').value;
             try {
-                const response = await fetch(`${SCRIPT_URL}?action=getAll${week ? `&week=${week}` : ''}`);
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getAll', week })
+                });
                 const result = await response.json();
                 if (result.success) {
                     const table = document.createElement('table');
@@ -318,6 +338,7 @@
                     });
                     document.getElementById('teacherResult').innerHTML = '';
                     document.getElementById('teacherResult').appendChild(table);
+                    showMessage('teacherMessage', '查詢成功', 'success');
                 } else {
                     showMessage('teacherMessage', result.message, 'error');
                 }
@@ -329,7 +350,11 @@
         
         async function logError(message) {
             try {
-                await fetch(`${SCRIPT_URL}?action=logError&message=${encodeURIComponent(message)}`);
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'logError', message })
+                });
             } catch (err) {
                 console.error('記錄錯誤失敗:', err);
             }
