@@ -9,6 +9,7 @@
         label { display: block; margin: 10px 0 5px; }
         input { width: 100%; padding: 8px; margin-bottom: 10px; }
         button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
         #message { margin-top: 20px; color: green; }
         #error { margin-top: 20px; color: red; }
     </style>
@@ -35,26 +36,32 @@
     <div id="error"></div>
 
     <script>
-        function signIn() {
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec';
+
+        async function signIn() {
             const week = document.getElementById('week').value;
             const className = document.getElementById('class').value;
             const id = document.getElementById('id').value;
             const name = document.getElementById('name').value;
 
-            google.script.run
-                .withSuccessHandler(onSuccess)
-                .withFailureHandler(onFailure)
-                .processSignIn(week, className, id, name);
-        }
-
-        function onSuccess(message) {
-            document.getElementById('message').innerText = message;
-            document.getElementById('error').innerText = '';
-        }
-
-        function onFailure(error) {
-            document.getElementById('error').innerText = error.message;
-            document.getElementById('message').innerText = '';
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ week, className, id, name })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('message').innerText = result.message;
+                    document.getElementById('error').innerText = '';
+                } else {
+                    document.getElementById('error').innerText = result.message;
+                    document.getElementById('message').innerText = '';
+                }
+            } catch (error) {
+                document.getElementById('error').innerText = '簽到失敗，請稍後再試。';
+                document.getElementById('message').innerText = '';
+            }
         }
     </script>
 </body>
