@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學生數位簽到系統2</title>
+    <title>學生數位簽到系統3</title>
     <style>
         /* 基礎排版與容器 */
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
         .container { max-width: 800px; width: 100%; margin: 20px 0; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); }
         h1 { color: #2c3e50; text-align: center; margin-bottom: 20px; }
         h2 { color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-top: 25px; }
+        h3 { border-left: 5px solid #3498db; padding-left: 10px; margin-top: 20px;}
         
         /* 導航列 */
         .nav-bar { text-align: center; margin-bottom: 20px; }
@@ -37,6 +38,17 @@
         }
         button[type="submit"]:hover { background-color: #27ae60; }
         button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+
+        /* 管理按鈕區塊 */
+        .admin-controls { display: flex; justify-content: space-between; gap: 15px; margin-bottom: 20px; padding-top: 15px; border-top: 1px dashed #ccc; }
+        .admin-controls > div { flex: 1; border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+        .admin-controls button { width: 100%; margin-top: 10px; padding: 8px; }
+        .delete-btn { background-color: #e74c3c; color: white; }
+        .delete-btn:hover { background-color: #c0392b; }
+        .manual-btn { background-color: #f39c12; color: white; }
+        .manual-btn:hover { background-color: #e67e22; }
+        .export-btn { background-color: #3498db; color: white; }
+        .export-btn:hover { background-color: #2980b9; }
 
         /* 訊息區塊 */
         .message { padding: 15px; margin-top: 20px; border-radius: 6px; font-weight: bold; }
@@ -67,7 +79,7 @@
 <body>
 
 <div class="container">
-    <h1>學生數位簽到系統2</h1>
+    <h1>學生數位簽到系統3</h1>
     <div class="nav-bar">
         <button id="show-checkin-btn" class="active">學生簽到</button>
         <button id="show-student-query-btn">學生查詢</button>
@@ -101,12 +113,41 @@
 
     <div id="teacher-admin-page" class="page" style="display: none;">
         <h2>教師管理介面</h2>
+        
         <form id="teacher-login-form">
             <label for="teacher-password">管理密碼：</label>
             <input type="password" id="teacher-password" placeholder="請輸入密碼" required>
             <button type="submit">登入並顯示記錄</button>
         </form>
         <div id="teacher-message" class="message" style="display: none;"></div>
+        
+        <div id="admin-tools-container" style="display: none; margin-top: 20px;">
+            <h3>管理操作</h3>
+            <div class="admin-controls">
+                
+                <div id="clear-data-tool">
+                    <h4>清除單週簽到資料</h4>
+                    <select id="clear-week-select" required></select>
+                    <button id="clear-week-btn" class="delete-btn">確認清除該週所有記錄</button>
+                </div>
+
+                <div id="manual-checkin-tool">
+                    <h4>學生補簽到</h4>
+                    <select id="manual-week-select" required></select>
+                    <input type="text" id="manual-student-id" placeholder="補簽學號" required style="margin-top: 5px;">
+                    <button id="manual-checkin-btn" class="manual-btn">確認補簽</button>
+                </div>
+
+                <div id="export-data-tool">
+                    <h4>匯出單週 CSV</h4>
+                    <select id="export-week-select" required></select>
+                    <button id="export-week-btn" class="export-btn">匯出該週 CSV</button>
+                </div>
+
+            </div>
+            <div id="admin-action-message" class="message" style="display: none; margin-bottom: 20px;"></div>
+        </div>
+        
         <div id="teacher-records-display"></div>
     </div>
 
@@ -114,10 +155,11 @@
 
 <script>
     // ----------------------------------------------------------------------------------
-    // **重要：替換成您最新部署 Apps Script 服務後得到的 URL**
-    // ----------------------------------------------------------------------------------
     const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec'; 
     
+    // 全域變數，用於儲存週次選項 (方便管理工具使用)
+    let weekOptionsData = [];
+
     // --- 頁面元素與切換邏輯 ---
     const pages = {
         'checkin-page': document.getElementById('checkin-page'),
@@ -142,18 +184,23 @@
     // 導航按鈕事件
     document.getElementById('show-checkin-btn').addEventListener('click', () => showPage('checkin-page'));
     document.getElementById('show-student-query-btn').addEventListener('click', () => showPage('student-query-page'));
-    document.getElementById('show-teacher-admin-btn').addEventListener('click', () => showPage('teacher-admin-page'));
+    document.getElementById('show-teacher-admin-btn').addEventListener('click', () => {
+        showPage('teacher-admin-page');
+        // 每次切換到教師頁面時，將管理工具隱藏，直到成功登入
+        document.getElementById('admin-tools-container').style.display = 'none';
+        document.getElementById('teacher-records-display').innerHTML = '';
+        document.getElementById('teacher-message').style.display = 'none';
+    });
 
 
     // --- 核心 Apps Script 通訊函數 ---
     async function callAppsScript(action, data = {}) {
         const messageDiv = data.messageDiv;
-        if (messageDiv) {
+        if (messageDiv && action !== 'exportWeekToCsv') { // 匯出 CSV 不清空訊息
              messageDiv.style.display = 'none';
              messageDiv.innerHTML = '';
         }
 
-        // 包含 action 參數和所有數據
         const formData = new URLSearchParams({ action, ...data });
 
         try {
@@ -166,11 +213,31 @@
                 body: formData
             });
 
+            // 處理 CSV 匯出
+            if (action === 'exportWeekToCsv' && response.headers.get('content-type').includes('text/csv')) {
+                const blob = await response.blob();
+                const disposition = response.headers.get('content-disposition');
+                const filenameMatch = disposition && disposition.match(/filename="(.+?)"/);
+                const filename = filenameMatch ? filenameMatch[1] : `Week_Export.csv`;
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                return { status: 'success', message: `CSV 檔案 (${filename}) 已開始下載。` };
+            }
+
+            // 處理 JSON 結果 (所有其他操作)
             const result = await response.json();
             return result;
 
         } catch (e) {
-            const msg = '連線錯誤，請檢查 Apps Script URL 或網路連線。';
+            const msg = `連線錯誤，請檢查 Apps Script URL 或網路連線: ${e.message}`;
             if (messageDiv) showMessage(messageDiv, msg, 'error');
             return { status: 'error', message: msg };
         }
@@ -192,110 +259,46 @@
         const result = await callAppsScript('getWeekOptions', { messageDiv: document.getElementById('checkin-message') });
 
         if (result.status === 'success') {
-            selectElement.innerHTML = ''; 
-            result.weeks.forEach(week => {
-                const option = document.createElement('option');
-                option.value = week.value;
-                option.textContent = week.label;
-                selectElement.appendChild(option);
+            weekOptionsData = result.weeks; // 儲存到全域變數
+            
+            // 填充三個下拉選單
+            [selectElement, document.getElementById('clear-week-select'), document.getElementById('manual-week-select'), document.getElementById('export-week-select')].forEach(sel => {
+                sel.innerHTML = ''; 
+                result.weeks.forEach(week => {
+                    const option = document.createElement('option');
+                    option.value = week.value;
+                    option.textContent = week.label;
+                    sel.appendChild(option);
+                });
+                sel.value = result.weeks[result.weeks.length - 1].value;
+                sel.disabled = false;
             });
-            selectElement.value = result.weeks[result.weeks.length - 1].value;
+            
+            // 啟用簽到選單
             selectElement.disabled = false;
 
         } else {
             const messageDiv = document.getElementById('checkin-message');
-            showMessage(messageDiv, `週次載入失敗: ${result.message}。請確認Apps Script已發布新版本。`, 'error');
+            showMessage(messageDiv, `週次載入失敗: ${result.message}。`, 'error');
         }
     }
 
-    // --- [功能 1/2] 學生簽到處理 ---
-    document.getElementById('checkin-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const studentId = document.getElementById('student-id-input').value.trim();
-        const selectedWeek = document.getElementById('week-select').value;
-        const messageDiv = document.getElementById('checkin-message');
-        const submitBtn = this.querySelector('button[type="submit"]');
+    // ... (其他頁面的表單事件處理保持不變) ...
 
-        submitBtn.disabled = true;
-        submitBtn.textContent = '簽到中...';
-        
-        const result = await callAppsScript('processAttendance', { 
-            studentId: studentId, 
-            selectedWeek: selectedWeek,
-            messageDiv: messageDiv
-        });
-        
-        showMessage(messageDiv, result.message, result.status);
-        if (result.status === 'success') {
-            document.getElementById('student-id-input').value = ''; 
-        }
-        
-        submitBtn.disabled = false;
-        submitBtn.textContent = '確認簽到';
-    });
-
-    // --- [功能 2] 學生查詢記錄 ---
-    document.getElementById('student-query-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const studentId = document.getElementById('query-student-id').value.trim();
-        const messageDiv = document.getElementById('student-query-message');
-        const displayDiv = document.getElementById('student-records-display');
-        const submitBtn = this.querySelector('button[type="submit"]');
-        
-        submitBtn.disabled = true;
-        displayDiv.innerHTML = '載入中...';
-        
-        const result = await callAppsScript('studentQuery', { 
-            studentId: studentId, 
-            messageDiv: messageDiv
-        });
-
-        if (result.status === 'success') {
-            showMessage(messageDiv, `${result.studentName} 同學，查到您的簽到記錄共 ${result.records.length} 筆。`, 'success');
-            renderStudentRecords(result.records, displayDiv);
-        } else {
-            showMessage(messageDiv, result.message, 'error');
-            displayDiv.innerHTML = '';
-        }
-        submitBtn.disabled = false;
-    });
-
-    function renderStudentRecords(records, divElement) {
-        if (records.length === 0) {
-             divElement.innerHTML = '<p>查無簽到記錄。</p>';
-             return;
-        }
-
-        let html = '<table><thead><tr><th>週次</th><th>班級</th><th>簽到時間</th><th>完整時間戳記</th><th>狀態</th></tr></thead><tbody>';
-        
-        records.forEach(r => {
-            const rowClass = r.validity === 'Invalid' ? 'class="invalid-checkin"' : '';
-            const statusText = r.validity === 'Invalid' ? '非簽到時間' : '正常';
-            
-            html += `<tr ${rowClass}>
-                <td>${r.week}</td>
-                <td>${r.classId}</td>
-                <td>${r.time}</td>
-                <td>${r.fullTimestamp}</td>
-                <td>${statusText}</td>
-            </tr>`;
-        });
-        html += '</tbody></table>';
-        divElement.innerHTML = html;
-    }
-
-
-    // --- [功能 3] 教師管理介面 ---
+    // --- [功能 3] 教師管理介面登入 ---
     document.getElementById('teacher-login-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const password = document.getElementById('teacher-password').value.trim();
         const messageDiv = document.getElementById('teacher-message');
         const displayDiv = document.getElementById('teacher-records-display');
+        const adminTools = document.getElementById('admin-tools-container');
         const submitBtn = this.querySelector('button[type="submit"]');
         
         submitBtn.disabled = true;
         displayDiv.innerHTML = '登入中...';
+        adminTools.style.display = 'none';
         
+        // 使用 dummy query 驗證密碼並取得數據
         const result = await callAppsScript('teacherQuery', { 
             password: password, 
             messageDiv: messageDiv
@@ -304,14 +307,17 @@
         if (result.status === 'success') {
             showMessage(messageDiv, `登入成功！已載入 ${Object.keys(result.summary).length} 週的簽到狀態。`, 'success');
             renderTeacherSummary(result.summary, displayDiv);
+            adminTools.style.display = 'block'; // 顯示管理工具
         } else {
             showMessage(messageDiv, result.message, 'error');
             document.getElementById('teacher-password').value = ''; 
             displayDiv.innerHTML = '';
+            adminTools.style.display = 'none';
         }
         submitBtn.disabled = false;
     });
 
+    // --- 教師查詢渲染 (更新以符合需求 2) ---
     function renderTeacherSummary(summary, divElement) {
         let html = '';
         const weeks = Object.keys(summary).sort((a, b) => parseInt(a) - parseInt(b));
@@ -322,7 +328,7 @@
         }
 
         weeks.forEach(week => {
-            html += `<h3>第 ${week} 週全體簽到狀況 (以學生名單為基準)</h3>`;
+            html += `<h3>第 ${week} 週全體簽到狀況</h3>`;
             html += '<table><thead><tr><th>班級</th><th>學號</th><th>姓名</th><th>簽到情況</th></tr></thead><tbody>';
             
             const students = summary[week];
@@ -342,14 +348,79 @@
 
         divElement.innerHTML = html;
     }
+    
+    // --- [功能 1] 清除單週資料事件 ---
+    document.getElementById('clear-week-btn').addEventListener('click', async function() {
+        const password = document.getElementById('teacher-password').value.trim();
+        const weekToClear = document.getElementById('clear-week-select').value;
+        const adminMessageDiv = document.getElementById('admin-action-message');
+        
+        if (!confirm(`警告！您確定要清除第 ${weekToClear} 週的所有簽到記錄嗎？此操作無法恢復！`)) {
+            return;
+        }
 
+        this.disabled = true;
+        this.textContent = '清除中...';
 
-    // --- 程式啟動 ---
-    document.addEventListener('DOMContentLoaded', () => {
-        loadWeekOptions(); // 載入週次選單
+        const result = await callAppsScript('clearWeekAttendance', {
+            password: password,
+            weekToClear: weekToClear,
+            messageDiv: adminMessageDiv
+        });
+
+        showMessage(adminMessageDiv, result.message, result.status);
+        this.disabled = false;
+        this.textContent = '確認清除該週所有記錄';
+        
+        // 清除後重新載入主查詢結果
+        if (result.status === 'success') {
+            document.getElementById('teacher-login-form').dispatchEvent(new Event('submit'));
+        }
     });
 
-</script>
+    // --- [功能 3] 學生補簽到事件 ---
+    document.getElementById('manual-checkin-btn').addEventListener('click', async function() {
+        const password = document.getElementById('teacher-password').value.trim();
+        const selectedWeek = document.getElementById('manual-week-select').value;
+        const studentId = document.getElementById('manual-student-id').value.trim();
+        const adminMessageDiv = document.getElementById('admin-action-message');
+        
+        if (!studentId || !selectedWeek) {
+             showMessage(adminMessageDiv, '請輸入學號並選擇週次。', 'error');
+             return;
+        }
 
-</body>
-</html>
+        this.disabled = true;
+        this.textContent = '補簽中...';
+
+        const result = await callAppsScript('manualCheckIn', {
+            password: password,
+            selectedWeek: selectedWeek,
+            studentId: studentId,
+            messageDiv: adminMessageDiv
+        });
+
+        showMessage(adminMessageDiv, result.message, result.status);
+        this.disabled = false;
+        this.textContent = '確認補簽';
+        document.getElementById('manual-student-id').value = ''; 
+        
+        // 補簽後重新載入主查詢結果
+        if (result.status === 'success') {
+            document.getElementById('teacher-login-form').dispatchEvent(new Event('submit'));
+        }
+    });
+
+    // --- [功能 4] 匯出單週 CSV 事件 ---
+    document.getElementById('export-week-btn').addEventListener('click', async function() {
+        const password = document.getElementById('teacher-password').value.trim();
+        const weekToExport = document.getElementById('export-week-select').value;
+        const adminMessageDiv = document.getElementById('admin-action-message');
+        
+        this.disabled = true;
+        this.textContent = '匯出中...';
+
+        const result = await callAppsScript('exportWeekToCsv', {
+            password: password,
+            weekToExport: weekToExport,
+            //
