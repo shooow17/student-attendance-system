@@ -5,27 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>學生線上簽到系統</title>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
         body {
             font-family: Arial, sans-serif;
-            max-width: 1000px;
-            margin: 20px auto;
+            background: #f4f4f4;
             padding: 20px;
-            background: #f7fafc;
         }
-        .tabs {
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .tab-buttons {
             display: flex;
+            justify-content: center;
             gap: 10px;
             margin-bottom: 20px;
         }
-        .tab {
+        .tab-button {
             padding: 10px 20px;
             cursor: pointer;
-            background: #e2e8f0;
+            background: #eee;
+            border: none;
             border-radius: 5px;
-            transition: background 0.3s;
         }
-        .tab.active {
-            background: #4299e1;
+        .tab-button.active {
+            background: #007bff;
             color: white;
         }
         .tab-content {
@@ -40,54 +56,38 @@
         label {
             display: block;
             margin-bottom: 5px;
-            color: #333;
         }
-        input {
+        input, select {
             width: 100%;
             padding: 8px;
-            border: 1px solid #cbd5e0;
-            border-radius: 5px;
-            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
-        .full-width-button {
+        button {
             width: 100%;
             padding: 10px;
-            background: #4299e1;
+            background: #007bff;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: background 0.3s;
         }
-        .full-width-button:hover {
-            background: #3182ce;
+        button:hover {
+            background: #0056b3;
         }
         .message {
             margin-top: 10px;
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 4px;
             text-align: center;
         }
         .message.success {
-            background: #c6f6d5;
-            color: #22543d;
+            background: #d4edda;
+            color: #155724;
         }
         .message.error {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-        .week-selector-container {
-            margin-bottom: 20px;
-        }
-        .week-selector {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        .week-dropdown {
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #cbd5e0;
+            background: #f8d7da;
+            color: #721c24;
         }
         table {
             width: 100%;
@@ -96,617 +96,211 @@
         }
         th, td {
             padding: 10px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #ddd;
             text-align: left;
         }
         th {
-            background: #edf2f7;
+            background: #f8f9fa;
         }
-        .action-buttons button {
-            padding: 5px 10px;
-            margin-right: 5px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .action-buttons .delete {
-            background: #e53e3e;
-            color: white;
-        }
-        .action-buttons .delete:hover {
-            background: #c53030;
-        }
-        #changePasswordForm {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #edf2f7;
-            border-radius: 10px;
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1 style="text-align: center; color: #333;">學生線上簽到系統</h1>
-    
-    <!-- 標籤切換 -->
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('studentTab')">學生簽到</div>
-        <div class="tab" onclick="switchTab('queryTab')">查詢簽到</div>
-        <div class="tab" onclick="switchTab('teacherTab')">教師管理</div>
-    </div>
-    
-    <!-- 學生簽到介面 -->
-    <div id="studentTab" class="tab-content active">
-        <div class="form-group">
-            <label for="studentId">學號：</label>
-            <input type="text" id="studentId" placeholder="輸入您的學號">
-        </div>
-        <button class="full-width-button" onclick="studentSignIn()">簽到</button>
-        <div id="signinMessage" class="message"></div>
-    </div>
-    
-    <!-- 查詢簽到介面 -->
-    <div id="queryTab" class="tab-content">
-        <div class="form-group">
-            <label for="queryStudentId">學號：</label>
-            <input type="text" id="queryStudentId" placeholder="輸入學號查詢簽到記錄">
-        </div>
-        <button class="full-width-button" onclick="querySignIn()">查詢</button>
-        <div id="queryMessage" class="message"></div>
-        <div id="queryResult"></div>
-    </div>
-    
-    <!-- 教師管理介面 -->
-    <div id="teacherTab" class="tab-content">
-        <!-- 登入介面 -->
-        <div id="teacherLogin" class="login-panel">
-            <h2 style="text-align: center; margin-bottom: 20px; color: #333;">教師登入</h2>
-            <div id="loginMessage"></div>
-            <div class="form-group">
-                <label for="teacherPassword">請輸入管理密碼：</label>
-                <input type="password" id="teacherPassword" placeholder="請輸入密碼">
-            </div>
-            <button class="full-width-button" onclick="teacherLogin()">登入</button>
+    <div class="container">
+        <h1>學生線上簽到系統</h1>
+        
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="switchTab('student')">學生簽到</button>
+            <button class="tab-button" onclick="switchTab('query')">查詢記錄</button>
+            <button class="tab-button" onclick="switchTab('teacher')">教師管理</button>
         </div>
         
-        <!-- 管理介面 -->
-        <div id="teacherDashboard" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
-                <h2 style="color: #333;">簽到管理系統</h2>
-                <div>
-                    <button class="action-buttons" onclick="showChangePasswordForm()" style="background: #4299e1; margin-right: 10px;">修改密碼</button>
-                    <button class="action-buttons" onclick="teacherLogout()" style="background: #718096;">登出</button>
+        <!-- 學生簽到 -->
+        <div id="student" class="tab-content active">
+            <div class="form-group">
+                <label for="studentId">學號：</label>
+                <input type="text" id="studentId" placeholder="輸入學號">
+            </div>
+            <div class="form-group">
+                <label for="week">週次：</label>
+                <select id="week">
+                    <option value="">選擇週次</option>
+                    <!-- 動態填充週次 -->
+                </select>
+            </div>
+            <button onclick="studentSignIn()">簽到</button>
+            <div id="studentMessage" class="message"></div>
+        </div>
+        
+        <!-- 查詢記錄 -->
+        <div id="query" class="tab-content">
+            <div class="form-group">
+                <label for="queryStudentId">學號：</label>
+                <input type="text" id="queryStudentId" placeholder="輸入學號">
+            </div>
+            <button onclick="queryAttendance()">查詢</button>
+            <div id="queryMessage" class="message"></div>
+            <div id="queryResult"></div>
+        </div>
+        
+        <!-- 教師管理 -->
+        <div id="teacher" class="tab-content">
+            <div id="teacherLogin">
+                <div class="form-group">
+                    <label for="teacherPassword">密碼：</label>
+                    <input type="password" id="teacherPassword" placeholder="輸入密碼">
                 </div>
+                <button onclick="teacherLogin()">登入</button>
+                <div id="teacherMessage" class="message"></div>
             </div>
             
-            <!-- 修改密碼表單 -->
-            <div id="changePasswordForm" style="display: none;">
-                <h3 style="text-align: center; margin-bottom: 20px; color: #333;">修改教師密碼</h3>
-                <div id="changePasswordMessage" class="message"></div>
+            <div id="teacherDashboard" class="hidden">
+                <button onclick="showPasswordForm()">修改密碼</button>
+                <button onclick="teacherLogout()">登出</button>
+                <div class="form-group">
+                    <label for="teacherWeek">週次：</label>
+                    <select id="teacherWeek">
+                        <option value="">選擇週次</option>
+                        <!-- 動態填充週次 -->
+                    </select>
+                </div>
+                <button onclick="getAllAttendance()">查看記錄</button>
+                <div id="teacherResult"></div>
+            </div>
+            
+            <div id="passwordForm" class="hidden">
                 <div class="form-group">
                     <label for="oldPassword">舊密碼：</label>
                     <input type="password" id="oldPassword" placeholder="輸入舊密碼">
                 </div>
                 <div class="form-group">
-                    <label for="newPassword">新密碼（至少8個字符）：</label>
+                    <label for="newPassword">新密碼：</label>
                     <input type="password" id="newPassword" placeholder="輸入新密碼">
                 </div>
-                <div class="form-group">
-                    <label for="confirmNewPassword">確認新密碼：</label>
-                    <input type="password" id="confirmNewPassword" placeholder="再次輸入新密碼">
-                </div>
-                <button class="full-width-button" onclick="changeTeacherPassword()">確認修改</button>
-                <button class="full-width-button" onclick="hideChangePasswordForm()" style="background: #718096; margin-top: 10px;">取消</button>
-            </div>
-            
-            <!-- 週次選擇與管理功能 -->
-            <div class="week-selector-container">
-                <div class="week-selector">
-                    <label style="margin: 0; font-size: 16px; color: #333;">選擇週次：</label>
-                    <select id="weekDropdown" class="week-dropdown" onchange="changeWeekByDropdown()">
-                        <!-- 週次選項會動態生成 -->
-                    </select>
-                    <button onclick="refreshData()" style="padding: 8px 16px; font-size: 14px;">🔄 重新整理</button>
-                </div>
-            </div>
-            <div id="attendanceTable"></div>
-            <div style="margin-top: 20px;">
-                <button class="full-width-button" onclick="clearWeek()" style="background: #e53e3e; margin-bottom: 10px;">清除本週資料</button>
-                <button class="full-width-button" onclick="clearAll()" style="background: #e53e3e;">清除所有資料</button>
+                <button onclick="updatePassword()">提交</button>
             </div>
         </div>
     </div>
-
+    
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec'; // 請替換為實際部署網址
-        let teacherToken = null;
-        let csrfToken = null;
-        let isTeacherLoggedIn = false;
-        let currentViewWeek = null;
-        const students = []; // 學生清單由後端提供
+        const SCRIPT_URL = 'https://script.google.com/macros/s/[您的腳本ID]/exec'; // 替換為您的 GAS 部署網址
         
-        // 初始化 CSRF token
-        async function initCsrfToken() {
-            try {
-                const response = await fetch(`${SCRIPT_URL}?action=getCsrfToken`);
-                const result = await response.json();
-                if (result.success) {
-                    csrfToken = result.token;
-                } else {
-                    showMessage('signinMessage', '無法獲取 CSRF token', 'error');
-                }
-            } catch (error) {
-                showMessage('signinMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
-        }
-        
-        // 頁面載入時初始化
-        window.onload = async () => {
-            await initCsrfToken();
-            updateWeekDropdown();
-        };
-        
-        // 顯示訊息
-        function showMessage(elementId, message, type) {
-            const messageDiv = document.getElementById(elementId);
-            if (messageDiv) {
-                messageDiv.className = `message ${type}`;
-                messageDiv.textContent = message;
-                setTimeout(() => {
-                    messageDiv.textContent = '';
-                    messageDiv.className = '';
-                }, 3000);
-            }
-        }
-        
-        // 記錄錯誤
-        async function logError(message) {
-            if (!csrfToken) return;
-            try {
-                const data = {
-                    action: 'logError',
-                    message: message,
-                    csrfToken: csrfToken
-                };
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-            } catch (err) {
-                console.error('記錄錯誤失敗');
-            }
-        }
-        
-        // 切換標籤
         function switchTab(tabId) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
         }
         
-        // 驗證學號格式
-        function validateStudentId(id) {
-            const regex = /^[a-zA-Z0-9]{9,10}$/;
-            return regex.test(id);
-        }
-        
-        // 學生簽到
-        async function studentSignIn(override = false) {
-            const studentIdInput = document.getElementById('studentId').value.trim();
-            if (!validateStudentId(studentIdInput)) {
-                showMessage('signinMessage', '學號格式錯誤，請輸入有效學號', 'error');
+        function studentSignIn() {
+            const studentId = document.getElementById('studentId').value;
+            const week = document.getElementById('week').value;
+            if (!studentId || !week) {
+                showMessage('studentMessage', '請填寫學號和週次', 'error');
                 return;
             }
-            
-            try {
-                const response = await fetch(`${SCRIPT_URL}?action=validateStudent&studentId=${encodeURIComponent(studentIdInput)}`);
-                const result = await response.json();
-                if (!result.success) {
-                    showMessage('signinMessage', result.message || '查無此學號', 'error');
-                    return;
-                }
-                
-                const student = result.student;
-                const data = {
-                    action: 'signin',
-                    week: currentViewWeek || '1',
-                    studentClass: student.class,
-                    studentId: student.id,
-                    studentName: student.name,
-                    override: override,
-                    isOnTime: checkSigninTime(),
-                    csrfToken: csrfToken
-                };
-                
-                const signInResponse = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+            fetch(`${SCRIPT_URL}?action=signin&studentId=${studentId}&week=${week}`)
+                .then(res => res.json())
+                .then(result => {
+                    showMessage('studentMessage', result.message, result.success ? 'success' : 'error');
                 });
-                const signInResult = await signInResponse.json();
-                
-                if (signInResult.success) {
-                    showMessage('signinMessage', signInResult.message, 'success');
-                    document.getElementById('studentId').value = '';
-                } else {
-                    showMessage('signinMessage', signInResult.message || '簽到失敗', 'error');
-                }
-            } catch (error) {
-                showMessage('signinMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
         }
         
-        // 檢查簽到時間（假設準時為當天 8:00-9:00）
-        function checkSigninTime() {
-            const now = new Date();
-            const hours = now.getHours();
-            return hours >= 8 && hours < 9;
-        }
-        
-        // 查詢簽到記錄
-        async function querySignIn() {
-            const studentId = document.getElementById('queryStudentId').value.trim();
-            if (!validateStudentId(studentId)) {
-                showMessage('queryMessage', '學號格式錯誤，請輸入有效學號', 'error');
+        function queryAttendance() {
+            const studentId = document.getElementById('queryStudentId').value;
+            if (!studentId) {
+                showMessage('queryMessage', '請填寫學號', 'error');
                 return;
             }
-            
-            try {
-                const response = await fetch(`${SCRIPT_URL}?action=query&studentId=${encodeURIComponent(studentId)}`);
-                const result = await response.json();
-                
-                if (result.success && result.data.length > 0) {
-                    const table = document.createElement('table');
-                    table.innerHTML = `
-                        <tr>
-                            <th>週次</th>
-                            <th>班級</th>
-                            <th>學號</th>
-                            <th>姓名</th>
-                            <th>簽到時間</th>
-                            <th>是否準時</th>
-                        </tr>
-                    `;
-                    result.data.forEach(record => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${record.week}</td>
-                            <td>${record.studentClass}</td>
-                            <td>${record.studentId}</td>
-                            <td>${record.studentName}</td>
-                            <td>${record.dateTime}</td>
-                            <td>${record.isOnTime ? '是' : '否'}</td>
-                        `;
-                        table.appendChild(row);
-                    });
-                    document.getElementById('queryResult').innerHTML = '';
-                    document.getElementById('queryResult').appendChild(table);
-                    showMessage('queryMessage', '查詢成功', 'success');
-                } else {
-                    document.getElementById('queryResult').innerHTML = '';
-                    showMessage('queryMessage', result.message || '無簽到記錄', 'error');
-                }
-            } catch (error) {
-                showMessage('queryMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
+            fetch(`${SCRIPT_URL}?action=query&studentId=${studentId}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        const table = document.createElement('table');
+                        table.innerHTML = '<tr><th>週次</th><th>班級</th><th>學號</th><th>姓名</th><th>簽到時間</th><th>時間戳記</th></tr>';
+                        result.data.forEach(record => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `<td>${record.week}</td><td>${record.studentClass}</td><td>${record.studentId}</td><td>${record.studentName}</td><td>${record.dateTime}</td><td>${record.timestamp}</td>`;
+                            table.appendChild(row);
+                        });
+                        document.getElementById('queryResult').innerHTML = '';
+                        document.getElementById('queryResult').appendChild(table);
+                    } else {
+                        showMessage('queryMessage', result.message, 'error');
+                    }
+                });
         }
         
-        // 教師登入
-        async function teacherLogin() {
+        function teacherLogin() {
             const password = document.getElementById('teacherPassword').value;
             if (!password) {
-                showMessage('loginMessage', '請輸入密碼', 'error');
+                showMessage('teacherMessage', '請填寫密碼', 'error');
                 return;
             }
-            
-            try {
-                const data = {
-                    action: 'teacherLogin',
-                    password: password,
-                    csrfToken: csrfToken
-                };
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+            fetch(`${SCRIPT_URL}?action=teacherLogin&password=${password}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        localStorage.setProperty('teacherToken', result.token);
+                        document.getElementById('teacherLogin').classList.add('hidden');
+                        document.getElementById('teacherDashboard').classList.remove('hidden');
+                    } else {
+                        showMessage('teacherMessage', result.message, 'error');
+                    }
                 });
-                const result = await response.json();
-                
-                if (result.success) {
-                    teacherToken = result.token;
-                    isTeacherLoggedIn = true;
-                    document.getElementById('teacherLogin').style.display = 'none';
-                    document.getElementById('teacherDashboard').style.display = 'block';
-                    document.getElementById('teacherPassword').value = '';
-                    showMessage('loginMessage', '登入成功', 'success');
-                    refreshData();
-                } else {
-                    showMessage('loginMessage', result.message || '登入失敗', 'error');
-                }
-            } catch (error) {
-                showMessage('loginMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
         }
         
-        // 教師登出
         function teacherLogout() {
-            teacherToken = null;
-            isTeacherLoggedIn = false;
-            document.getElementById('teacherDashboard').style.display = 'none';
-            document.getElementById('teacherLogin').style.display = 'block';
-            document.getElementById('attendanceTable').innerHTML = '';
-            hideChangePasswordForm();
-            showMessage('loginMessage', '已登出', 'success');
+            localStorage.removeItem('teacherToken');
+            document.getElementById('teacherDashboard').classList.add('hidden');
+            document.getElementById('teacherLogin').classList.remove('hidden');
         }
         
-        // 顯示修改密碼表單
-        function showChangePasswordForm() {
-            document.getElementById('changePasswordForm').style.display = 'block';
-            document.getElementById('teacherDashboard').querySelectorAll(':not(#changePasswordForm)').forEach(el => {
-                el.style.opacity = '0.5';
-                el.style.pointerEvents = 'none';
-            });
+        function showPasswordForm() {
+            document.getElementById('passwordForm').classList.remove('hidden');
         }
         
-        // 隱藏修改密碼表單
-        function hideChangePasswordForm() {
-            document.getElementById('changePasswordForm').style.display = 'none';
-            document.getElementById('teacherDashboard').querySelectorAll(':not(#changePasswordForm)').forEach(el => {
-                el.style.opacity = '1';
-                el.style.pointerEvents = 'auto';
-            });
-            document.getElementById('oldPassword').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmNewPassword').value = '';
-            document.getElementById('changePasswordMessage').textContent = '';
-        }
-        
-        // 修改教師密碼
-        async function changeTeacherPassword() {
-            if (!teacherToken || !csrfToken) {
-                showMessage('changePasswordMessage', '未登入，請重新登入', 'error');
-                return teacherLogout();
-            }
-            
+        function updatePassword() {
             const oldPassword = document.getElementById('oldPassword').value;
             const newPassword = document.getElementById('newPassword').value;
-            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-            
-            if (!oldPassword || !newPassword || !confirmNewPassword) {
-                showMessage('changePasswordMessage', '請填寫所有欄位', 'error');
+            if (!oldPassword || !newPassword) {
+                showMessage('teacherMessage', '請填寫舊密碼和新密碼', 'error');
                 return;
             }
-            
-            if (newPassword !== confirmNewPassword) {
-                showMessage('changePasswordMessage', '新密碼與確認密碼不符', 'error');
-                return;
-            }
-            
-            if (newPassword.length < 8) {
-                showMessage('changePasswordMessage', '新密碼需至少8個字符', 'error');
-                return;
-            }
-            
-            try {
-                const data = {
-                    action: 'updateTeacherPassword',
-                    oldPassword: oldPassword,
-                    newPassword: newPassword,
-                    token: teacherToken,
-                    csrfToken: csrfToken
-                };
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('changePasswordMessage', result.message, 'success');
-                    setTimeout(() => {
+            fetch(`${SCRIPT_URL}?action=updateTeacherPassword&oldPassword=${oldPassword}&newPassword=${newPassword}`)
+                .then(res => res.json())
+                .then(result => {
+                    showMessage('teacherMessage', result.message, result.success ? 'success' : 'error');
+                    if (result.success) {
                         teacherLogout();
-                    }, 2000);
-                } else {
-                    showMessage('changePasswordMessage', result.message || '密碼更新失敗', 'error');
-                }
-            } catch (error) {
-                showMessage('changePasswordMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
-        }
-        
-        // 更新週次下拉選單
-        function updateWeekDropdown() {
-            const dropdown = document.getElementById('weekDropdown');
-            dropdown.innerHTML = '';
-            for (let i = 1; i <= 18; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.text = `第 ${i} 週`;
-                dropdown.appendChild(option);
-            }
-            currentViewWeek = dropdown.value;
-        }
-        
-        // 切換週次
-        function changeWeekByDropdown() {
-            currentViewWeek = document.getElementById('weekDropdown').value;
-            refreshData();
-        }
-        
-        // 刷新簽到資料
-        async function refreshData() {
-            if (!teacherToken || !csrfToken) {
-                return teacherLogout();
-            }
-            
-            try {
-                const data = {
-                    action: 'getAll',
-                    week: currentViewWeek,
-                    token: teacherToken,
-                    csrfToken: csrfToken
-                };
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    }
                 });
-                const result = await response.json();
-                
-                if (result.success) {
-                    students.length = 0;
-                    students.push(...result.students);
-                    updateAttendanceTable(result.data);
-                } else {
-                    showMessage('loginMessage', result.message || '無法獲取資料', 'error');
-                    teacherLogout();
-                }
-            } catch (error) {
-                showMessage('loginMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-                teacherLogout();
-            }
         }
         
-        // 更新簽到表格
-        function updateAttendanceTable(data) {
-            const table = document.createElement('table');
-            table.innerHTML = `
-                <tr>
-                    <th>週次</th>
-                    <th>班級</th>
-                    <th>學號</th>
-                    <th>姓名</th>
-                    <th>簽到時間</th>
-                    <th>是否準時</th>
-                    <th>操作</th>
-                </tr>
-            `;
-            data.forEach(record => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${record.week}</td>
-                    <td>${record.studentClass}</td>
-                    <td>${record.studentId}</td>
-                    <td>${record.studentName}</td>
-                    <td>${record.dateTime}</td>
-                    <td>${record.isOnTime ? '是' : '否'}</td>
-                    <td class="action-buttons">
-                        <button class="delete" onclick="deleteAttendance('${record.studentId}', '${record.week}')">刪除</button>
-                    </td>
-                `;
-                table.appendChild(row);
-            });
-            document.getElementById('attendanceTable').innerHTML = '';
-            document.getElementById('attendanceTable').appendChild(table);
-        }
-        
-        // 刪除簽到記錄
-        async function deleteAttendance(studentId, week) {
-            if (!teacherToken || !csrfToken) {
-                return teacherLogout();
-            }
-            
-            try {
-                const data = {
-                    action: 'delete',
-                    studentId: studentId,
-                    week: week,
-                    token: teacherToken,
-                    csrfToken: csrfToken
-                };
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+        function getAllAttendance() {
+            const week = document.getElementById('teacherWeek').value;
+            fetch(`${SCRIPT_URL}?action=getAll&week=${week}`)
+                .then(res => res.json())
+                .then(result => {
+                    const table = document.createElement('table');
+                    table.innerHTML = '<tr><th>週次</th><th>班級</th><th>學號</th><th>姓名</th><th>簽到時間</th><th>時間戳記</th></tr>';
+                    result.data.forEach(record => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td>${record.week}</td><td>${record.studentClass}</td><td>${record.studentId}</td><td>${record.studentName}</td><td>${record.dateTime}</td><td>${record.timestamp}</td>`;
+                        table.appendChild(row);
+                    });
+                    document.getElementById('teacherResult').innerHTML = '';
+                    document.getElementById('teacherResult').appendChild(table);
                 });
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('loginMessage', result.message, 'success');
-                    refreshData();
-                } else {
-                    showMessage('loginMessage', result.message || '刪除失敗', 'error');
-                }
-            } catch (error) {
-                showMessage('loginMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
         }
         
-        // 清除本週資料
-        async function clearWeek() {
-            if (!teacherToken || !csrfToken) {
-                return teacherLogout();
-            }
-            
-            if (!confirm(`確定要清除第 ${currentViewWeek} 週的資料？`)) return;
-            
-            try {
-                const data = {
-                    action: 'clearWeek',
-                    week: currentViewWeek,
-                    token: teacherToken,
-                    csrfToken: csrfToken
-                };
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('loginMessage', result.message, 'success');
-                    refreshData();
-                } else {
-                    showMessage('loginMessage', result.message || '清除失敗', 'error');
-                }
-            } catch (error) {
-                showMessage('loginMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
-        }
-        
-        // 清除所有資料
-        async function clearAll() {
-            if (!teacherToken || !csrfToken) {
-                return teacherLogout();
-            }
-            
-            if (!confirm('確定要清除所有簽到資料？此操作無法恢復！')) return;
-            
-            try {
-                const data = {
-                    action: 'clearAll',
-                    token: teacherToken,
-                    csrfToken: csrfToken
-                };
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    showMessage('loginMessage', result.message, 'success');
-                    refreshData();
-                } else {
-                    showMessage('loginMessage', result.message || '清除失敗', 'error');
-                }
-            } catch (error) {
-                showMessage('loginMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
+        function showMessage(id, message, type) {
+            const msg = document.getElementById(id);
+            msg.textContent = message;
+            msg.className = `message ${type}`;
+            setTimeout(() => msg.textContent = '', 3000);
         }
     </script>
 </body>
