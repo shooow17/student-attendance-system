@@ -2,372 +2,59 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學生線上簽到系統</title>
+    <title>學生簽到系統</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            background: #f4f4f4;
-        }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background: #e2e8f0;
-            border-radius: 5px;
-        }
-        .tab.active {
-            background: #007bff;
-            color: white;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input, select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .message {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-        }
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        th {
-            background: #f8f9fa;
-        }
-        #passwordForm {
-            margin-top: 20px;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { max-width: 400px; margin: auto; }
+        label { display: block; margin: 10px 0 5px; }
+        input { width: 100%; padding: 8px; margin-bottom: 10px; }
+        button { padding: 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        #message { margin-top: 20px; color: green; }
+        #error { margin-top: 20px; color: red; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>學生線上簽到系統</h1>
-        
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('studentTab')">學生簽到</div>
-            <div class="tab" onclick="switchTab('queryTab')">查詢記錄</div>
-            <div class="tab" onclick="switchTab('teacherTab')">教師管理</div>
-        </div>
-        
-        <!-- 學生簽到 -->
-        <div id="studentTab" class="tab-content active">
-            <div class="form-group">
-                <label for="studentId">學號：</label>
-                <input type="text" id="studentId" placeholder="輸入學號">
-            </div>
-            <div class="form-group">
-                <label for="week">週次：</label>
-                <select id="week">
-                    <option value="">選擇週次</option>
-                    <option value="1">第1週</option>
-                    <option value="2">第2週</option>
-                    <option value="3">第3週</option>
-                    <option value="4">第4週</option>
-                    <option value="5">第5週</option>
-                </select>
-            </div>
-            <button onclick="studentSignIn()">簽到</button>
-            <div id="studentMessage" class="message"></div>
-        </div>
-        
-        <!-- 查詢記錄 -->
-        <div id="queryTab" class="tab-content">
-            <div class="form-group">
-                <label for="queryStudentId">學號：</label>
-                <input type="text" id="queryStudentId" placeholder="輸入學號">
-            </div>
-            <button onclick="queryAttendance()">查詢</button>
-            <div id="queryMessage" class="message"></div>
-            <div id="queryResult"></div>
-        </div>
-        
-        <!-- 教師管理 -->
-        <div id="teacherTab" class="tab-content">
-            <div id="teacherLogin">
-                <div class="form-group">
-                    <label for="teacherPassword">密碼：</label>
-                    <input type="password" id="teacherPassword" placeholder="輸入密碼">
-                </div>
-                <button onclick="teacherLogin()">登入</button>
-                <div id="teacherMessage" class="message"></div>
-            </div>
-            <div id="teacherDashboard" style="display: none;">
-                <div class="form-group">
-                    <label for="teacherWeek">週次：</label>
-                    <select id="teacherWeek">
-                        <option value="">選擇週次</option>
-                        <option value="1">第1週</option>
-                        <option value="2">第2週</option>
-                        <option value="3">第3週</option>
-                        <option value="4">第4週</option>
-                        <option value="5">第5週</option>
-                    </select>
-                </div>
-                <button onclick="getAllAttendance()">查看記錄</button>
-                <button onclick="showPasswordForm()">修改密碼</button>
-                <button onclick="teacherLogout()">登出</button>
-                <div id="passwordForm" style="display: none;">
-                    <div class="form-group">
-                        <label for="oldPassword">舊密碼：</label>
-                        <input type="password" id="oldPassword" placeholder="輸入舊密碼">
-                    </div>
-                    <div class="form-group">
-                        <label for="newPassword">新密碼（至少8個字符）：</label>
-                        <input type="password" id="newPassword" placeholder="輸入新密碼">
-                    </div>
-                    <button onclick="updatePassword()">提交</button>
-                </div>
-                <div id="teacherResult"></div>
-            </div>
-        </div>
-    </div>
-    
+    <h1>學生簽到系統</h1>
+    <form id="signInForm">
+        <label for="week">週次：</label>
+        <input type="number" id="week" name="week" required min="1">
+
+        <label for="class">班級：</label>
+        <input type="text" id="class" name="class" required>
+
+        <label for="id">學號：</label>
+        <input type="text" id="id" name="id" required>
+
+        <label for="name">姓名：</label>
+        <input type="text" id="name" name="name" required>
+
+        <button type="button" onclick="signIn()">簽到</button>
+    </form>
+
+    <div id="message"></div>
+    <div id="error"></div>
+
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec'; // 替換為您的 GAS 部署網址
-        
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
-        }
-        
-        async function studentSignIn() {
-            const studentId = document.getElementById('studentId').value.trim();
+        function signIn() {
             const week = document.getElementById('week').value;
-            if (!studentId || !week) {
-                showMessage('studentMessage', '請填寫學號和週次', 'error');
-                return;
-            }
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'signin', studentId, week })
-                });
-                const result = await response.json();
-                showMessage('studentMessage', result.message, result.success ? 'success' : 'error');
-                if (result.success) {
-                    document.getElementById('studentId').value = '';
-                }
-            } catch (error) {
-                showMessage('studentMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
+            const className = document.getElementById('class').value;
+            const id = document.getElementById('id').value;
+            const name = document.getElementById('name').value;
+
+            google.script.run
+                .withSuccessHandler(onSuccess)
+                .withFailureHandler(onFailure)
+                .processSignIn(week, className, id, name);
         }
-        
-        async function queryAttendance() {
-            const studentId = document.getElementById('queryStudentId').value.trim();
-            if (!studentId) {
-                showMessage('queryMessage', '請填寫學號', 'error');
-                return;
-            }
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'query', studentId })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    const table = document.createElement('table');
-                    table.innerHTML = '<tr><th>週次</th><th>班級</th><th>學號</th><th>姓名</th><th>簽到時間</th><th>時間戳記</th></tr>';
-                    result.data.forEach(record => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `<td>${record.week}</td><td>${record.studentClass}</td><td>${record.studentId}</td><td>${record.studentName}</td><td>${record.dateTime}</td><td>${record.timestamp}</td>`;
-                        table.appendChild(row);
-                    });
-                    document.getElementById('queryResult').innerHTML = '';
-                    document.getElementById('queryResult').appendChild(table);
-                    showMessage('queryMessage', '查詢成功', 'success');
-                } else {
-                    showMessage('queryMessage', result.message, 'error');
-                }
-            } catch (error) {
-                showMessage('queryMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
+
+        function onSuccess(message) {
+            document.getElementById('message').innerText = message;
+            document.getElementById('error').innerText = '';
         }
-        
-        async function teacherLogin() {
-            const password = document.getElementById('teacherPassword').value.trim();
-            if (!password) {
-                showMessage('teacherMessage', '請填寫密碼', 'error');
-                return;
-            }
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'teacherLogin', password })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    document.getElementById('teacherLogin').style.display = 'none';
-                    document.getElementById('teacherDashboard').style.display = 'block';
-                    document.getElementById('teacherPassword').value = '';
-                    showMessage('teacherMessage', '登入成功', 'success');
-                } else {
-                    showMessage('teacherMessage', result.message, 'error');
-                }
-            } catch (error) {
-                showMessage('teacherMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
-        }
-        
-        function teacherLogout() {
-            document.getElementById('teacherDashboard').style.display = 'none';
-            document.getElementById('teacherLogin').style.display = 'block';
-            document.getElementById('passwordForm').style.display = 'none';
-            showMessage('teacherMessage', '已登出', 'success');
-        }
-        
-        function showPasswordForm() {
-            document.getElementById('passwordForm').style.display = 'block';
-        }
-        
-        async function updatePassword() {
-            const oldPassword = document.getElementById('oldPassword').value.trim();
-            const newPassword = document.getElementById('newPassword').value.trim();
-            if (!oldPassword || !newPassword) {
-                showMessage('teacherMessage', '請填寫舊密碼和新密碼', 'error');
-                return;
-            }
-            if (newPassword.length < 8) {
-                showMessage('teacherMessage', '新密碼需至少8個字符', 'error');
-                return;
-            }
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'updateTeacherPassword', oldPassword, newPassword })
-                });
-                const result = await response.json();
-                showMessage('teacherMessage', result.message, result.success ? 'success' : 'error');
-                if (result.success) {
-                    document.getElementById('oldPassword').value = '';
-                    document.getElementById('newPassword').value = '';
-                    document.getElementById('passwordForm').style.display = 'none';
-                    teacherLogout();
-                }
-            } catch (error) {
-                showMessage('teacherMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
-        }
-        
-        async function getAllAttendance() {
-            const week = document.getElementById('teacherWeek').value;
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'getAll', week })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    const table = document.createElement('table');
-                    table.innerHTML = '<tr><th>週次</th><th>班級</th><th>學號</th><th>姓名</th><th>簽到時間</th><th>時間戳記</th></tr>';
-                    result.data.forEach(record => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `<td>${record.week}</td><td>${record.studentClass}</td><td>${record.studentId}</td><td>${record.studentName}</td><td>${record.dateTime}</td><td>${record.timestamp}</td>`;
-                        table.appendChild(row);
-                    });
-                    document.getElementById('teacherResult').innerHTML = '';
-                    document.getElementById('teacherResult').appendChild(table);
-                    showMessage('teacherMessage', '查詢成功', 'success');
-                } else {
-                    showMessage('teacherMessage', result.message, 'error');
-                }
-            } catch (error) {
-                showMessage('teacherMessage', '網路錯誤，請稍後再試', 'error');
-                logError(error.message);
-            }
-        }
-        
-        async function logError(message) {
-            try {
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'logError', message })
-                });
-            } catch (err) {
-                console.error('記錄錯誤失敗:', err);
-            }
-        }
-        
-        function showMessage(id, message, type) {
-            const msg = document.getElementById(id);
-            msg.textContent = message;
-            msg.className = `message ${type}`;
-            setTimeout(() => {
-                msg.textContent = '';
-                msg.className = 'message';
-            }, 3000);
+
+        function onFailure(error) {
+            document.getElementById('error').innerText = error.message;
+            document.getElementById('message').innerText = '';
         }
     </script>
 </body>
