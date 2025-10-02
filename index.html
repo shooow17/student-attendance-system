@@ -1,306 +1,285 @@
-// 全域變數
-const SPREADSHEET_ID = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec';
-const SS = SpreadsheetApp.openById(SPREADSHEET_ID);
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學生數位簽到系統</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        .nav-bar button { margin: 5px; padding: 10px 15px; cursor: pointer; border: 1px solid #ccc; background-color: #e0e0e0; border-radius: 4px; }
+        .nav-bar button.active { background-color: #007bff; color: white; border-color: #007bff; }
+        .page { border-top: 2px solid #ccc; padding-top: 20px; margin-top: 15px; }
+        h2 { color: #333; }
+        input, select, button { padding: 10px; margin-top: 8px; margin-bottom: 8px; border-radius: 4px; border: 1px solid #ccc; width: calc(100% - 22px); box-sizing: border-box;}
+        button { background-color: #28a745; color: white; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .message { padding: 10px; margin-top: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
 
-// 分頁名稱常數
-const STUDENTS_SHEET_NAME = 'Students';
-const ATTENDANCE_SHEET_NAME = 'Attendance';
-const ERROR_LOG_SHEET_NAME = 'ErrorLog';
-const PS_SHEET_NAME = 'ps'; // 假設密碼儲存在此分頁的 A1
+<div class="container">
+    <h1>學生數位簽到系統</h1>
+    <div class="nav-bar">
+        <button id="show-checkin-btn" class="active">學生簽到</button>
+        <button id="show-student-query-btn">學生查詢</button>
+        <button id="show-teacher-admin-btn">教師管理</button>
+    </div>
 
-// ----------------------------------------------------
-// 1. 服務部署入口 (doGet/doPost)
-// ----------------------------------------------------
+    <div id="checkin-page" class="page">
+        <h2>學生簽到</h2>
+        <form id="checkin-form">
+            <label for="week-select">選擇週次：</label>
+            <select id="week-select" required></select>
+            
+            <label for="student-id-input">學號：</label>
+            <input type="text" id="student-id-input" placeholder="請輸入學號" required>
+            
+            <button type="submit">確認簽到</button>
+        </form>
+        <div id="checkin-message" class="message"></div>
+    </div>
 
-function doGet(e) {
-  // 解決 'No HTML file named index was found' 錯誤
-  return HtmlService.createTemplateFromFile('index') 
-      .evaluate()
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
+    <div id="student-query-page" class="page" style="display: none;">
+        <h2>查詢個人簽到記錄</h2>
+        <form id="student-query-form">
+            <label for="query-student-id">學號：</label>
+            <input type="text" id="query-student-id" placeholder="請輸入學號" required>
+            <button type="submit">查詢記錄</button>
+        </form>
+        <div id="student-query-message" class="message"></div>
+        <div id="student-records-display"></div>
+    </div>
 
-function doPost(e) {
-  const action = e.parameter.action;
-  let result = {};
+    <div id="teacher-admin-page" class="page" style="display: none;">
+        <h2>教師管理介面</h2>
+        <form id="teacher-login-form">
+            <label for="teacher-password">管理密碼：</label>
+            <input type="password" id="teacher-password" placeholder="請輸入密碼" required>
+            <button type="submit">登入並顯示記錄</button>
+        </form>
+        <div id="teacher-message" class="message"></div>
+        <div id="teacher-records-display"></div>
+    </div>
 
-  try {
-    switch (action) {
-      case 'getWeekOptions':
-        // 動作 1: 取得週次選單選項 (給前端的下拉選單用)
-        result = generateWeekOptions();
-        break;
-      case 'processAttendance':
-        // 動作 2: 學生簽到
-        const attendanceData = {
-          studentId: e.parameter.studentId,
-          selectedWeek: parseInt(e.parameter.selectedWeek) // 取得前端傳來選定的週次
-        };
-        result = processAttendance(attendanceData);
-        break;
-      case 'studentQuery':
-        // 動作 3: 學生查詢自己的簽到記錄
-        result = handleStudentQuery(e.parameter.studentId);
-        break;
-      case 'teacherQuery':
-        // 動作 4: 教師管理介面查詢
-        result = handleTeacherQuery(e.parameter.password);
-        break;
-      default:
-        result = { status: 'error', message: '無效的操作指令。' };
-        break;
-    }
-  } catch (error) {
-    const errorMessage = `doPost 系統錯誤: ${error.toString()}`;
-    result = { status: 'error', message: `伺服器錯誤，請聯繫管理員。` };
-    logError(errorMessage);
-  }
+</div>
 
-  // 將結果以 JSON 格式返回給前端
-  return ContentService
-      .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-}
-
-// ----------------------------------------------------
-// 2. 核心邏輯：功能實現
-// ----------------------------------------------------
-
-/**
- * [功能 1] 根據固定起點生成 18 週的選單選項。
- */
-function generateWeekOptions() {
-  // 1140920 => 2025年9月20日 (JavaScript月份從 0 開始，所以 8 是 9月)
-  const startDate = new Date(2025, 8, 20); 
-  const options = [];
-  
-  for (let i = 1; i <= 18; i++) {
-    // 計算當前週的日期
-    const currentDate = new Date(startDate.getTime() + (i - 1) * 7 * 24 * 60 * 60 * 1000);
+<script>
+    // 請將這個 URL 替換為您重新部署 Apps Script 後得到的「網頁應用程式」URL
+    const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyx1NW8ZEsoqlMH2pq2-4IVuYoHlm33dW8v2SyxS21M8P07KftPLBvkMI5GnuX03xC_w/exec'; 
     
-    // 格式化為民國年 (YYY)MMDD 格式 (例如: 1140920)
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
-    const day = currentDate.getDate();
-    
-    const rocYear = year - 1911; 
-    
-    const formattedDate = `${rocYear}${String(month).padStart(2, '0')}${String(day).padStart(2, '0')}`;
-    
-    const label = `第${i}週 ${formattedDate}`;
-    const value = i; // 週次號碼
-    
-    options.push({ label, value });
-  }
-  return { status: 'success', weeks: options };
-}
-
-
-/**
- * 處理簽到請求 (已更新為使用前端傳來的 selectedWeek)。
- */
-function processAttendance(formData) {
-  let result = {};
-  const { studentId, selectedWeek } = formData;
-
-  if (!studentId || isNaN(selectedWeek)) {
-    result = { status: 'error', message: '學號或週次不能為空！' };
-    logError(`簽到失敗: 輸入資料不完整`);
-    return result;
-  }
-
-  try {
-    const studentsSheet = SS.getSheetByName(STUDENTS_SHEET_NAME);
-    const attendanceSheet = SS.getSheetByName(ATTENDANCE_SHEET_NAME);
-    
-    const studentValues = studentsSheet.getDataRange().getValues().slice(1);
-    
-    // 查找學生資料: [班級(0), 學號(1), 姓名(2)]
-    const studentInfo = studentValues.find(row => 
-        row.length >= 3 && String(row[1]).trim() === studentId 
-    );
-
-    if (!studentInfo) {
-      result = { status: 'error', message: `學號 ${studentId} 不存在於學生名單中。` };
-      logError(`簽到失敗: 學號 ${studentId} 不存在`);
-      return result;
-    }
-
-    const [classId, retrievedStudentId, studentName] = studentInfo;
-    
-    // 準備簽到記錄資料
-    const now = new Date();
-    const attendanceTime = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
-    
-    // 寫入簽到記錄 [週次, 班級, 學號, 姓名, 簽到時間, 時間戳記]
-    const newRow = [
-      selectedWeek, // 使用選單選擇的週次
-      classId,
-      retrievedStudentId,
-      studentName,
-      attendanceTime,
-      now // 寫入完整的時間戳記
-    ];
-    
-    attendanceSheet.appendRow(newRow);
-
-    result = { 
-      status: 'success', 
-      message: `${classId} 班 ${studentName} (${retrievedStudentId}) 在 第${selectedWeek}週 簽到成功！`,
-      studentName: studentName // 返回姓名給前端顯示歡迎訊息
+    // --- 頁面切換邏輯 ---
+    const pages = {
+        'checkin-page': document.getElementById('checkin-page'),
+        'student-query-page': document.getElementById('student-query-page'),
+        'teacher-admin-page': document.getElementById('teacher-admin-page')
+    };
+    const navButtons = {
+        'show-checkin-btn': 'checkin-page',
+        'show-student-query-btn': 'student-query-page',
+        'show-teacher-admin-btn': 'teacher-admin-page'
     };
 
-  } catch (e) {
-    const errorMessage = `處理簽到時發生錯誤: ${e.toString()}`;
-    result = { status: 'error', message: `系統錯誤，請聯繫管理員。` };
-    logError(errorMessage);
-  }
+    function showPage(pageId) {
+        for (let id in pages) {
+            pages[id].style.display = (id === pageId) ? 'block' : 'none';
+        }
+        for (let btnId in navButtons) {
+            document.getElementById(btnId).classList.toggle('active', navButtons[btnId] === pageId);
+        }
+    }
 
-  return result;
-}
+    document.getElementById('show-checkin-btn').addEventListener('click', () => showPage('checkin-page'));
+    document.getElementById('show-student-query-btn').addEventListener('click', () => showPage('student-query-page'));
+    document.getElementById('show-teacher-admin-btn').addEventListener('click', () => showPage('teacher-admin-page'));
 
-/**
- * [功能 2] 學生查詢自己的簽到情況。
- */
-function handleStudentQuery(studentId) {
-  const attendanceSheet = SS.getSheetByName(ATTENDANCE_SHEET_NAME);
-  const studentsSheet = SS.getSheetByName(STUDENTS_SHEET_NAME);
 
-  if (!attendanceSheet || !studentsSheet) {
-    return { status: 'error', message: '試算表分頁遺失，請聯繫管理員。' };
-  }
-  
-  // 檢查學號是否有效
-  const studentValues = studentsSheet.getDataRange().getValues().slice(1);
-  const studentInfo = studentValues.find(row => 
-      row.length >= 3 && String(row[1]).trim() === studentId 
-  );
+    // --- 核心 Apps Script 通訊函數 ---
+    async function callAppsScript(action, data = {}) {
+        const messageDiv = data.messageDiv; // 為了顯示錯誤訊息而傳遞
+        if (messageDiv) messageDiv.innerHTML = ''; 
 
-  if (!studentInfo) {
-      return { status: 'error', message: `學號 ${studentId} 不存在於名單中。` };
-  }
-  
-  // 讀取所有簽到記錄
-  const allRecords = attendanceSheet.getDataRange().getValues();
-  if (allRecords.length <= 1) {
-    return { status: 'success', records: [], message: '尚無任何簽到記錄。' };
-  }
-  
-  const headers = allRecords[0]; 
-  const data = allRecords.slice(1);
-  
-  // 過濾出該學生的記錄
-  const studentRecords = data.filter(row => 
-    row.length >= 3 && String(row[2]).trim() === studentId 
-  ).map(row => {
-    // 轉換時間戳記格式，方便前端顯示
-    const timestamp = Utilities.formatDate(new Date(row[5]), Session.getScriptTimeZone(), 'YYYY-MM-DD HH:mm:ss');
+        const formData = new URLSearchParams({ action, ...data });
 
-    return {
-      week: row[0],
-      classId: row[1],
-      time: row[4],
-      fullTimestamp: timestamp
-    };
-  });
-  
-  return { 
-    status: 'success', 
-    records: studentRecords,
-    studentName: studentInfo[2] // 姓名
-  };
-}
+        try {
+            const response = await fetch(APP_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            });
 
-/**
- * [功能 3] 教師管理介面：查詢所有簽到狀況 (需密碼)。
- */
-function handleTeacherQuery(password) {
-  if (!verifyPassword(password)) {
-    return { status: 'error', message: '密碼錯誤，請重新輸入。' };
-  }
-  
-  const attendanceSheet = SS.getSheetByName(ATTENDANCE_SHEET_NAME);
-  if (!attendanceSheet) {
-    return { status: 'error', message: 'Attendance 分頁遺失，請聯繫管理員。' };
-  }
-  
-  const allRecords = attendanceSheet.getDataRange().getValues();
-  
-  if (allRecords.length <= 1) {
-    return { status: 'success', summary: {}, message: '尚無任何簽到記錄。' };
-  }
+            const result = await response.json();
+            return result;
 
-  // [週次(0), 班級(1), 學號(2), 姓名(3), 簽到時間(4), 時間戳記(5)]
-  const headers = allRecords[0];
-  const data = allRecords.slice(1);
-
-  // 整理資料結構： { '週次1': { '學號A': [簽到記錄1, 簽到記錄2], '學號B': [...] }, ... }
-  const weeklySummary = {};
-  
-  data.forEach(row => {
-    const week = String(row[0]).trim();
-    const studentId = String(row[2]).trim();
-    const time = row[4];
-    const classId = row[1];
-    const studentName = row[3];
-    const timestamp = Utilities.formatDate(new Date(row[5]), Session.getScriptTimeZone(), 'YYYY-MM-DD HH:mm:ss');
-
-    if (!weeklySummary[week]) {
-      weeklySummary[week] = {};
+        } catch (e) {
+            const msg = '連線錯誤，請檢查 Apps Script URL 或網路連線。';
+            if (messageDiv) showMessage(messageDiv, msg, 'error');
+            return { status: 'error', message: msg };
+        }
     }
     
-    if (!weeklySummary[week][studentId]) {
-      weeklySummary[week][studentId] = {
-        classId: classId,
-        studentName: studentName,
-        checkInTimes: []
-      };
+    // --- 輔助函數：顯示訊息 ---
+    function showMessage(divElement, message, type) {
+        divElement.className = `message ${type}`;
+        divElement.textContent = message;
     }
-    
-    weeklySummary[week][studentId].checkInTimes.push({ time, fullTimestamp: timestamp });
-  });
 
-  return { status: 'success', summary: weeklySummary, headers: headers };
-}
+    // --- [功能 1] 週次選單載入 ---
+    async function loadWeekOptions() {
+        const selectElement = document.getElementById('week-select');
+        selectElement.innerHTML = ''; // 清空舊選項
+        
+        const result = await callAppsScript('getWeekOptions');
 
-// ----------------------------------------------------
-// 3. 輔助函數
-// ----------------------------------------------------
+        if (result.status === 'success') {
+            result.weeks.forEach(week => {
+                const option = document.createElement('option');
+                option.value = week.value;
+                option.textContent = week.label;
+                selectElement.appendChild(option);
+            });
+            // 預設選中最後一週或當前週，這裡簡單選中最後一週
+            selectElement.value = result.weeks[result.weeks.length - 1].value;
 
-/**
- * 驗證老師的管理密碼
- */
-function verifyPassword(password) {
-    try {
-        const psSheet = SS.getSheetByName(PS_SHEET_NAME);
-        if (!psSheet) {
-            logError(`找不到分頁: ${PS_SHEET_NAME}`);
-            // 為了避免因密碼分頁不存在而鎖定教師，可以考慮返回 true 或預設密碼
-            // 這裡假設定為找不到分頁則驗證失敗
-            return false;
+        } else {
+            const messageDiv = document.getElementById('checkin-message');
+            showMessage(messageDiv, `週次載入失敗: ${result.message}`, 'error');
+        }
+    }
+
+    // --- [功能 1/2] 學生簽到處理 ---
+    document.getElementById('checkin-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const studentId = document.getElementById('student-id-input').value.trim();
+        const selectedWeek = document.getElementById('week-select').value;
+        const messageDiv = document.getElementById('checkin-message');
+        
+        const result = await callAppsScript('processAttendance', { 
+            studentId: studentId, 
+            selectedWeek: selectedWeek,
+            messageDiv: messageDiv
+        });
+        
+        showMessage(messageDiv, result.message, result.status);
+        if (result.status === 'success') {
+            document.getElementById('student-id-input').value = ''; // 清空學號欄位
+        }
+    });
+
+    // --- [功能 2] 學生查詢記錄 ---
+    document.getElementById('student-query-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const studentId = document.getElementById('query-student-id').value.trim();
+        const messageDiv = document.getElementById('student-query-message');
+        const displayDiv = document.getElementById('student-records-display');
+        displayDiv.innerHTML = '';
+        
+        const result = await callAppsScript('studentQuery', { 
+            studentId: studentId, 
+            messageDiv: messageDiv
+        });
+
+        if (result.status === 'success') {
+            showMessage(messageDiv, `${result.studentName} 同學，查到您的簽到記錄共 ${result.records.length} 筆。`, 'success');
+            renderStudentRecords(result.records, displayDiv);
+        } else {
+            showMessage(messageDiv, result.message, 'error');
+        }
+    });
+
+    function renderStudentRecords(records, divElement) {
+        if (records.length === 0) return;
+
+        let html = '<table><thead><tr><th>週次</th><th>班級</th><th>簽到時間</th><th>完整時間戳記</th></tr></thead><tbody>';
+        records.forEach(r => {
+            html += `<tr>
+                <td>${r.week}</td>
+                <td>${r.classId}</td>
+                <td>${r.time}</td>
+                <td>${r.fullTimestamp}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        divElement.innerHTML = html;
+    }
+
+
+    // --- [功能 3] 教師管理介面 ---
+    document.getElementById('teacher-login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const password = document.getElementById('teacher-password').value.trim();
+        const messageDiv = document.getElementById('teacher-message');
+        const displayDiv = document.getElementById('teacher-records-display');
+        displayDiv.innerHTML = '';
+        
+        const result = await callAppsScript('teacherQuery', { 
+            password: password, 
+            messageDiv: messageDiv
+        });
+
+        if (result.status === 'success') {
+            showMessage(messageDiv, `登入成功！已載入所有 ${Object.keys(result.summary).length} 週的簽到資料。`, 'success');
+            renderTeacherSummary(result.summary, displayDiv);
+        } else {
+            showMessage(messageDiv, result.message, 'error');
+            document.getElementById('teacher-password').value = ''; // 登入失敗清空密碼
+        }
+    });
+
+    function renderTeacherSummary(summary, divElement) {
+        let html = '';
+        const weeks = Object.keys(summary).sort((a, b) => parseInt(a) - parseInt(b));
+
+        weeks.forEach(week => {
+            html += `<h3>第 ${week} 週簽到狀況</h3>`;
+            html += '<table><thead><tr><th>班級</th><th>學號</th><th>姓名</th><th>簽到次數</th><th>最近簽到時間</th></tr></thead><tbody>';
+            
+            const students = summary[week];
+            const studentIds = Object.keys(students);
+
+            studentIds.forEach(id => {
+                const student = students[id];
+                const count = student.checkInTimes.length;
+                
+                // 找到最晚的簽到時間
+                const latestTime = student.checkInTimes.reduce((latest, current) => {
+                    return current.fullTimestamp > latest.fullTimestamp ? current : latest;
+                });
+
+                html += `<tr>
+                    <td>${student.classId}</td>
+                    <td>${id}</td>
+                    <td>${student.studentName}</td>
+                    <td>${count} 次</td>
+                    <td>${latestTime.fullTimestamp}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+        });
+
+        if (weeks.length === 0) {
+            html = '<p>目前沒有任何簽到記錄。</p>';
         }
 
-        // 假設密碼儲存在 A1
-        const correctPassword = String(psSheet.getRange('A1').getValue()).trim(); 
-        
-        return password.trim() === correctPassword;
-    } catch (e) {
-        logError(`密碼驗證錯誤: ${e.toString()}`);
-        return false;
+        divElement.innerHTML = html;
     }
-}
 
-/**
- * 記錄錯誤訊息到 ErrorLog 分頁
- */
-function logError(message) {
-  try {
-    const errorLogSheet = SS.getSheetByName(ERROR_LOG_SHEET_NAME);
-    if (errorLogSheet) {
-      errorLogSheet.appendRow([new Date(), message]); 
-    } else {
-      Logger.log(`無法記錄錯誤，找不到分頁: ${ERROR_LOG_SHEET_NAME}. 原始錯誤: ${message}`);
-    }
-  } catch (e) {
-    Logger.log(`記錄錯誤時又發生錯誤: ${e.toString()}`);
-  }
-}
+
+    // --- 程式啟動 ---
+    document.addEventListener('DOMContentLoaded', () => {
+        loadWeekOptions();
+    });
+
+</script>
+
+</body>
+</html>
