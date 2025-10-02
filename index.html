@@ -569,7 +569,7 @@
                 🌐 已連接至 Google Sheets（點擊查看連線狀態）
             </div>
             <div id="signinTimeInfo" class="signin-time-info unavailable">
-                ⏰ 建議簽到時間：每週六 11:00-12:00
+                ⏰ 上課可簽到時間：每週六 11:00-12:00
             </div>
         </div>
 
@@ -845,7 +845,7 @@
         const teacherPassword = 'admin123';
         let countdownInterval = null;
 
-        // 檢查是否在建議簽到時間內
+        // 檢查是否在上課簽到時間內
         function checkSigninTime() {
             const now = new Date();
             const day = now.getDay(); // 0 = 週日, 6 = 週六
@@ -859,10 +859,10 @@
             const signinTimeInfo = document.getElementById('signinTimeInfo');
             if (isSigninTime) {
                 signinTimeInfo.className = 'signin-time-info available';
-                signinTimeInfo.innerHTML = '✅ 現在是建議簽到時間（剩餘 ' + (60 - minutes) + ' 分鐘）';
+                signinTimeInfo.innerHTML = '✅ 現在是上課簽到區間（剩餘 ' + (60 - minutes) + ' 分鐘）';
             } else {
                 signinTimeInfo.className = 'signin-time-info unavailable';
-                signinTimeInfo.innerHTML = '⏰ 建議簽到時間：每週六 11:00-12:00';
+                signinTimeInfo.innerHTML = '⏰ 上課簽到時間：每週六 11:00-12:00';
             }
             
             // 更新簽到頁面的提示
