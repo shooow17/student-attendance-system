@@ -649,7 +649,7 @@
                             1. 請輸入您的完整學號（不分大小寫）<br>
                             2. 選擇對應的週次進行簽到<br>
                             3. 每週只能簽到一次<br>
-                            4. <strong style="color: #c53030;">建議簽到時間：每週六 11:00-12:00（非建議時間簽到將標記為紅色）</strong><br>
+                            4. <strong style="color: #c53030;">上課簽到時間：每週六 11:00-12:00（非上課時間簽到將標記為紅色）</strong><br>
                             5. 資料會即時同步至雲端
                         </p>
                     </div>
@@ -964,7 +964,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showMessage('signinMessage', `簽到成功！${student.name}同學，您已完成第${week}週的簽到。${!isSigninTime && !override ? '（非建議時間簽到）' : ''}`, 'success');
+                    showMessage('signinMessage', `簽到成功！${student.name}同學，您已完成第${week}週的簽到。${!isSigninTime && !override ? '（非上課時間簽到）' : ''}`, 'success');
                     document.getElementById('studentId').value = '';
                 } else {
                     showMessage('signinMessage', result.message || '簽到失敗', 'error');
@@ -1264,7 +1264,7 @@
             for (let week = 1; week <= getCurrentWeek(); week++) {
                 if (signedWeeks[week]) {
                     signedCount++;
-                    const statusText = signedWeeks[week].isOnTime ? '✓ 已簽到' : '⚠️ 非建議時間簽到';
+                    const statusText = signedWeeks[week].isOnTime ? '✓ 已簽到' : '⚠️ 非上課時間簽到';
                     const statusClass = signedWeeks[week].isOnTime ? 'status-signed' : 'status-off-time';
                     html += `
                         <tr>
@@ -1411,7 +1411,7 @@
                 if (attendance) {
                     row.insertCell(3).textContent = attendance.dateTime;
                     const statusCell = row.insertCell(4);
-                    statusCell.textContent = attendance.isOnTime ? '✓ 已簽到' : '⚠️ 非建議時間簽到';
+                    statusCell.textContent = attendance.isOnTime ? '✓ 已簽到' : '⚠️ 非上課時間簽到';
                     statusCell.className = attendance.isOnTime ? 'signed-cell' : 'off-time-cell';
                     
                     const actionCell = row.insertCell(5);
@@ -1530,7 +1530,7 @@
             
             students.forEach(student => {
                 const attendance = attendanceMap[student.id.toLowerCase()];
-                const status = attendance ? (attendance.isOnTime ? '已簽到' : '非建議時間簽到') : '未簽到';
+                const status = attendance ? (attendance.isOnTime ? '已簽到' : '非上課時間簽到') : '未簽到';
                 const time = attendance ? attendance.dateTime : '-';
                 csv += `${student.class},${student.id},${student.name},${time},${status}\n`;
             });
@@ -1558,7 +1558,7 @@
                         students.forEach(student => {
                             const key = `${week}_${student.id.toLowerCase()}`;
                             const attendance = attendanceMap[key];
-                            const status = attendance ? (attendance.isOnTime ? '已簽到' : '非建議時間簽到') : '未簽到';
+                            const status = attendance ? (attendance.isOnTime ? '已簽到' : '非上課時間簽到') : '未簽到';
                             const time = attendance ? attendance.dateTime : '-';
                             csv += `第${week}週,${student.class},${student.id},${student.name},${time},${status}\n`;
                         });
