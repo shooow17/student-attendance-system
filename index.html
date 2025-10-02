@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學生數位簽到系統6</title>
+    <title>學生數位簽到系統</title>
     <style>
         /* 基礎排版與容器 */
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
@@ -75,11 +75,11 @@
             color: #666;
         }
 
-        /* 新增：週次分頁樣式 */
+        /* 週次分頁樣式 */
         .week-tabs {
             display: flex;
-            overflow-x: auto; /* 允許橫向滾動 */
-            white-space: nowrap; /* 防止換行 */
+            overflow-x: auto; 
+            white-space: nowrap; 
             margin-bottom: 10px;
             border-bottom: 2px solid #ccc;
             padding-bottom: 0;
@@ -108,7 +108,7 @@
             border-top: 2px solid #3498db;
             border-left: 1px solid #ccc;
             border-right: 1px solid #ccc;
-            border-bottom: 2px solid white; /* 蓋住下面的線 */
+            border-bottom: 2px solid white; 
             font-weight: bold;
         }
         .week-content {
@@ -124,12 +124,31 @@
         .week-pane.active {
             display: block;
         }
+        
+        /* 新增：說明文字區塊樣式 */
+        .notes {
+            margin-top: 30px;
+            padding: 15px;
+            border: 1px solid #3498db;
+            border-left: 5px solid #3498db;
+            background-color: #ecf8ff;
+            border-radius: 8px;
+            color: #34495e;
+            font-size: 0.95em;
+        }
+        .notes p {
+            margin: 5px 0;
+            padding-left: 10px;
+        }
+        .notes strong {
+            color: #e74c3c; /* 讓重點文字更突出 */
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>學生數位簽到系統6</h1>
+    <h1>學生數位簽到系統</h1>
     <div class="nav-bar">
         <button id="show-checkin-btn" class="active">學生簽到</button>
         <button id="show-student-query-btn">學生查詢</button>
@@ -148,6 +167,12 @@
             <button type="submit">確認簽到</button>
         </form>
         <div id="checkin-message" class="message" style="display: none;"></div>
+        
+        <div class="notes">
+            <p>1. 簽到區間為<strong>每週六上午11:00-12:00</strong>，請勿提早簽到。</p>
+            <p>2. 若有上課而未簽到的同學，請以郵件聯絡老師 (<a href="mailto:shooow.tw@gmail.com">shooow.tw@gmail.com</a>)。</p>
+            <p>3. 本系統僅供簽到，請假請記得上<strong>請假系統</strong>登記喔。</p>
+        </div>
     </div>
 
     <div id="student-query-page" class="page" style="display: none;">
