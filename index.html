@@ -842,8 +842,19 @@
         let attendanceData = [];
         let isTeacherLoggedIn = false;
         let currentClassFilter = 'all';
-        const teacherPassword = 'tdes3176403';
+        const teacherPassword = 'yes3024221';
         let countdownInterval = null;
+
+        // 計算週次對應日期
+        function getWeekDate(week) {
+            const startDate = new Date(2025, 8, 20); // 2025/09/20
+            const targetDate = new Date(startDate);
+            targetDate.setDate(startDate.getDate() + (week - 1) * 7);
+            const year = targetDate.getFullYear();
+            const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const day = String(targetDate.getDate()).padStart(2, '0');
+            return `${year}/${month}/${day}`;
+        }
 
         // 檢查是否在上課簽到時間內
         function checkSigninTime() {
@@ -1119,10 +1130,12 @@
         // 填充週次選單
         function populateWeekSelect() {
             const select = document.getElementById('weekSelect');
+            select.innerHTML = '<option value="">請選擇...</option>';
             for (let i = 1; i <= 18; i++) {
+                const date = getWeekDate(i);
                 const option = document.createElement('option');
                 option.value = i;
-                option.textContent = `第 ${i} 週`;
+                option.textContent = `第 ${i} 週 (${date})`;
                 select.appendChild(option);
             }
             select.value = getCurrentWeek();
@@ -1134,9 +1147,10 @@
             if (dropdown) {
                 dropdown.innerHTML = '';
                 for (let i = 1; i <= 18; i++) {
+                    const date = getWeekDate(i);
                     const option = document.createElement('option');
                     option.value = i;
-                    option.textContent = `第 ${i} 週`;
+                    option.textContent = `第 ${i} 週 (${date})`;
                     dropdown.appendChild(option);
                 }
                 dropdown.value = getCurrentWeek();
@@ -1268,7 +1282,7 @@
                     const statusClass = signedWeeks[week].isOnTime ? 'status-signed' : 'status-off-time';
                     html += `
                         <tr>
-                            <td>第 ${week} 週</td>
+                            <td>第 ${week} 週 (${getWeekDate(week)})</td>
                             <td>${signedWeeks[week].dateTime}</td>
                             <td class="${statusClass}">${statusText}</td>
                         </tr>
@@ -1276,7 +1290,7 @@
                 } else {
                     html += `
                         <tr>
-                            <td>第 ${week} 週</td>
+                            <td>第 ${week} 週 (${getWeekDate(week)})</td>
                             <td>-</td>
                             <td class="status-not-signed">未簽到</td>
                         </tr>
@@ -1560,7 +1574,7 @@
                             const attendance = attendanceMap[key];
                             const status = attendance ? (attendance.isOnTime ? '已簽到' : '非上課時間簽到') : '未簽到';
                             const time = attendance ? attendance.dateTime : '-';
-                            csv += `第${week}週,${student.class},${student.id},${student.name},${time},${status}\n`;
+                            csv += `第${week}週 (${getWeekDate(week)}),${student.class},${student.id},${student.name},${time},${status}\n`;
                         });
                     }
                     
