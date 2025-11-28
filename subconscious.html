@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>潛意識👾異獸錄 - 你的心靈黑暗棲息地</title>
+    <!-- 載入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 設置字體為 Inter 和中文字體 -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        /* 引入思源黑體或類似的無襯線中文字體，Canvas環境可能默認支持 */
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #0d0d17; /* 幽深藍黑 */
+            color: #E0E0FF; /* 淡紫色文字 */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* 霓虹燈光效果 */
+        .neon-glow {
+            text-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 20px #f0f;
+            color: #E0FFFF;
+        }
+
+        /* 按鈕特殊樣式 */
+        .quiz-button {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background: rgba(40, 40, 60, 0.5);
+            border: 2px solid #5A5A99;
+            box-shadow: 0 0 10px rgba(90, 90, 153, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .quiz-button:hover {
+            transform: translateY(-2px) scale(1.02);
+            border-color: #A0A0FF;
+            box-shadow: 0 0 15px #A0A0FF, 0 0 5px #f0f;
+        }
+
+        /* 讀取中的故障藝術效果 */
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+        .glitch-text {
+            animation: glitch 0.5s infinite alternate;
+            text-shadow: 2px 2px 0 #ff00ff, -2px -2px 0 #00ffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="w-full max-w-2xl bg-[#1a1a2e] p-8 md:p-12 rounded-xl shadow-2xl border border-[#303050] min-h-[500px] flex flex-col justify-center items-center">
+        <!-- UI 內容將由 JavaScript 動態渲染 -->
+    </div>
+
+    <script>
+        // 核心資料：問題、選項和結果定義
+        const questions = [
+            { id: 1, q: "當你開始一個新專案時，你的第一反應是？", options: [
+                { text: "A: 偷偷觀察環境和對手，直到找到最安全的切入點。", score: 'A' },
+                { text: "B: 立刻衝動地行動，邊做邊學，並準備好面對所有混亂。", score: 'B' },
+                { text: "C: 建立一個詳細的甘特圖，計算每個步驟所需的精確時間和資源。", score: 'C' },
+                { text: "D: 先找到最有影響力的組員或導師，確保自己站在聚光燈下。", score: 'D' }
+            ]},
+            { id: 2, q: "你在派對上看到一個有趣的陌生人，你會？", options: [
+                { text: "A: 默默靠近，在腦海中排練了三種開場白，但最終還是沒開口。", score: 'A' },
+                { text: "B: 大聲走過去，問對方一個極度出乎意料或有點冒犯的問題。", score: 'B' },
+                { text: "C: 保持距離，觀察他們的肢體語言和社交模式，以便做出最佳判斷。", score: 'C' },
+                { text: "D: 展現你最迷人的一面，並確保他們被你獨特的個人魅力所吸引。", score: 'D' }
+            ]},
+            { id: 3, q: "你最大的壓力來源是？", options: [
+                { text: "A: 害怕自己不夠好，以及對所有潛在失敗的過度分析。", score: 'A' },
+                { text: "B: 感覺生活太過平靜、規律，毫無新意和爆炸性事件。", score: 'B' },
+                { text: "C: 看到有人做出低效、非理性的決定，浪費了寶貴的時間。", score: 'C' },
+                { text: "D: 發現自己被忽視，或有人比你更受到關注和讚賞。", score: 'D' }
+            ]},
+            { id: 4, q: "你不小心在一個重要群組裡發了不該發的私人訊息，你會？", options: [
+                { text: "A: 立即收回，然後一整晚焦慮地檢查是否有其他人看到。", score: 'A' },
+                { text: "B: 不在乎，甚至可能再發一個更具爭議性的訊息來分散注意力。", score: 'B' },
+                { text: "C: 快速評估訊息造成的損害和可行的補救措施，並撰寫一封標準化的道歉信。", score: 'C' },
+                { text: "D: 否認並堅稱手機被盜用，或將責任歸咎於應用程式的錯誤。", score: 'D' }
+            ]},
+            { id: 5, q: "對你來說，「自由」的定義是？", options: [
+                { text: "A: 內心的平靜，擺脫自我懷疑和不安全感。", score: 'A' },
+                { text: "B: 隨心所欲地打破常規，生活不被任何規則束縛。", score: 'B' },
+                { text: "C: 能夠完美掌握所有的變數，從而實現目標的最大化。", score: 'C' },
+                { text: "D: 隨心所欲地影響和引導周遭的人，讓他們跟隨我的腳步。", score: 'D' }
+            ]},
+            { id: 6, q: "看到一篇文章充滿漏洞的錯誤，你會？", options: [
+                { text: "A: 雖然內心糾結，但選擇不發言，害怕爭論和被針對。", score: 'A' },
+                { text: "B: 寫一篇充滿情緒的長文，攻擊作者和他的「愚蠢」觀點。", score: 'B' },
+                { text: "C: 整理出一份清單，逐一列出所有錯誤並附上客觀的數據來源。", score: 'C' },
+                { text: "D: 以一種高高在上、充滿優越感的語氣，輕描淡寫地指出錯誤。", score: 'D' }
+            ]},
+            { id: 7, q: "你如何處理你的失敗或錯誤？", options: [
+                { text: "A: 沉浸在自責和後悔中，很久都走不出來。", score: 'A' },
+                { text: "B: 很快就忘記了，因為你的注意力已經轉移到下一個刺激事件。", score: 'B' },
+                { text: "C: 立即分析錯誤發生的根本原因，並將其納入未來「演算法」的修正。", score: 'C' },
+                { text: "D: 把它美化成「獨特的經歷」或「戲劇性的人生轉折」來與人分享。", score: 'D' }
+            ]},
+            { id: 8, q: "關於「愛」或「親密關係」，你最看重？", options: [
+                { text: "A: 一種不需言語的安全感和被接納的感覺。", score: 'A' },
+                { text: "B: 充滿激情、戲劇性和不可預測的火花。", score: 'B' },
+                { text: "C: 雙方的資源匹配、共同目標和長期的穩定性評估。", score: 'C' },
+                { text: "D: 對方對你的絕對忠誠和專注，以及你對這段關係的掌控權。", score: 'D' }
+            ]},
+            { id: 9, q: "你的手機桌面或電腦資料夾狀態是？", options: [
+                { text: "A: 雜亂無章，因為你總是在拖延整理，但心裡又很在意。", score: 'A' },
+                { text: "B: 充滿各種臨時文件和截圖，反正找東西就是用搜尋功能！", score: 'B' },
+                { text: "C: 依日期、類型、優先級完美分類，並有嚴格的命名規則。", score: 'C' },
+                { text: "D: 充滿精心挑選的、能展現你「品味」或「身份」的圖片和文件。", score: 'D' }
+            ]},
+            { id: 10, q: "你理想中的休息方式是？", options: [
+                { text: "A: 窩在一個安靜的角落，徹底斷開與外界的聯繫。", score: 'A' },
+                { text: "B: 找一個刺激的活動來發洩精力，例如夜衝、極限運動或夜店。", score: 'B' },
+                { text: "C: 閱讀一本商業或科學書籍，利用休息時間來提升知識水平。", score: 'C' },
+                { text: "D: 規劃一場精美的聚會，讓自己成為被圍繞、被傾聽的中心。", score: 'D' }
+            ]},
+            { id: 11, q: "當你看到別人成功時，你的反應是？", options: [
+                { text: "A: 內心充滿了羨慕和自我懷疑，感覺自己永遠達不到那種高度。", score: 'A' },
+                { text: "B: 覺得那是「運氣好」，成功的路徑應該是更瘋狂、更不守規矩的。", score: 'B' },
+                { text: "C: 立即收集他們的成功模式數據，並分析其效率和可複製性。", score: 'C' },
+                { text: "D: 表面上讚美，但暗自覺得自己可以做得更好、更華麗。", score: 'D' }
+            ]},
+            { id: 12, q: "描述你對「規則」的態度。", options: [
+                { text: "A: 我害怕打破規則，雖然有時覺得它很束縛人。", score: 'A' },
+                { text: "B: 規則？它們只是等待被挑戰和破壞的「建議」！", score: 'B' },
+                { text: "C: 規則是必要的，但如果我有更高效的系統，規則就可以被優化或取代。", score: 'C' },
+                { text: "D: 規則是為平庸者設計的，但我知道如何巧妙地繞過它們來達到目的。", score: 'D' }
+            ]}
+        ];
+
+        const monsters = {
+            'A': {
+                name: '👻 寂靜蝕者 (The Silent Devourer)',
+                color: 'text-indigo-400',
+                desc: '你的怪物隱藏在深處，不斷地自我反芻和消耗。它不是因為缺乏能力，而是因為害怕外界的目光。你的強大潛能正被「萬事求穩」和「過度自省」所蝕空，讓你錯過許多機會。',
+                advice: '【大學生專屬建議】: 這個學期，請在**至少三個你不擅長的課堂問題**上主動發言。要記住，在大學裡，「展示半成品」比「隱藏完美品」更重要。勇敢地讓別人看到你的不完美，才能真正獲得成長。',
+                careerAdvice: '【職場發展建議】: 適合深度專研型職位（如數據分析師、後端工程師、研究員）。你的細膩思考能力是寶貴資產，但必須練習**主動表達你的貢獻**，而非等待被發現。選擇鼓勵專精，但需要定期匯報進度的團隊，強迫自己走出舒適區。'
+            },
+            'B': {
+                name: '⚡️ 失序狂徒 (The Chaos Fiend)',
+                color: 'text-red-400',
+                desc: '你的怪物是混亂的化身，難以忍受平靜與常規。你追求腎上腺素飆升的快感，藉由打破規則或製造刺激來感受存在感。雖然你充滿活力和創造力，但穩定性和長期目標常因此受損。',
+                advice: '【大學生專屬建議】: 試著將你對混亂的渴望導入「可控的創意領域」。加入一個即興表演社團或參與一個瘋狂的創業挑戰，讓你的能量有建設性的出口。在課業上，至少為最困難的那門課建立一個「最低限度」的每日計畫。',
+                careerAdvice: '【職場發展建議】: 適合高變動性、需要快速反應和解決危機的環境（如新創公司、緊急應變公關、創意總監）。你的能量和突破常規的思維是優勢。尋找一個能**給你空間發揮創意，但同時擁有穩定理性夥伴**的職位，避免重複性高的行政工作。'
+            },
+            'C': {
+                name: '🤖 精確計算體 (The Metric Core)',
+                color: 'text-green-400',
+                desc: '你的怪物是極度理性的數據核心。你將一切量化，追求效率與完美，對低效、浪費時間的行為感到不耐。雖然這使你成為學業上的佼佼者，但也可能導致你在人際關係中顯得情感疏離和缺乏共情。',
+                advice: '【大學生專屬建議】: 嘗試「低效能社交」。每週安排一次純粹為了「浪費時間」的聚會，目的是體驗沒有目標的交流。請記住，人類的情感不是可以優化的變量，而是一種需要時間維護的資源。',
+                careerAdvice: '【職場發展建議】: 適合要求高精確度和邏輯結構的職位（如財務分析師、營運長、系統架構師、品質管理）。你的核心價值在於優化與效率。在團隊合作中，請將**「溝通效率」納入你的計算範圍**，多練習傾聽和使用「非數據化」的語言來建立信任。'
+            },
+            'D': {
+                name: '🌹 魅惑幻影 (The Alluring Phantasm)',
+                color: 'text-purple-400',
+                desc: '你的怪物擅長偽裝和表演。你強烈渴望目光和讚賞，並透過影響或操縱他人的情感來滿足自己的控制欲。你極具魅力和領導力，但你的自我價值感過度依賴於外界對你的肯定。',
+                advice: '【大學生專屬建議】: 試著在沒有觀眾的情況下完成一項挑戰（例如：為自己學習一項新技能，但絕不告訴任何人）。學習在「無人喝采」時也能獲得滿足感。真正的力量來自於內心的穩定，而非鏡子中的形象。',
+                careerAdvice: '【職場發展建議】: 適合需要高度影響力和個人魅力的職位（如高階業務、品牌公關、部門主管）。你天生懂得如何吸引目光並凝聚資源。挑戰在於：學習將**控制欲轉化為賦權**。確保你的成功基於團隊的實質成果，而不僅是你個人在會議上的光芒。'
+            }
+        };
+
+        // 遊戲狀態
+        let gameState = {
+            step: 0, // 0: Start Screen, 1-12: Questions, 13: Processing, 14: Result
+            currentQIndex: 0,
+            scores: { A: 0, B: 0, C: 0, D: 0 },
+            resultMonster: null,
+            processingTimeout: null,
+        };
+
+        const app = document.getElementById('app');
+
+        // 初始化或重置遊戲狀態
+        function initGame() {
+            gameState.step = 0;
+            gameState.currentQIndex = 0;
+            gameState.scores = { A: 0, B: 0, C: 0, D: 0 };
+            gameState.resultMonster = null;
+            if (gameState.processingTimeout) clearTimeout(gameState.processingTimeout);
+            renderUI();
+        }
+
+        // 處理使用者答案
+        function handleAnswer(choice) {
+            if (gameState.step < 1 || gameState.step > 12) return;
+
+            // 增加分數
+            gameState.scores[choice]++;
+
+            // 進入下一題或結果計算
+            if (gameState.currentQIndex < questions.length - 1) {
+                gameState.currentQIndex++;
+                gameState.step++;
+                renderUI();
+            } else {
+                gameState.step = 13; // 進入處理畫面
+                renderUI();
+                
+                // 設定延遲，模擬分析過程
+                gameState.processingTimeout = setTimeout(() => {
+                    gameState.step = 14; // 進入結果畫面
+                    gameState.resultMonster = calculateResult();
+                    renderUI();
+                }, 3000); // 3 秒的模擬分析時間
+            }
+        }
+
+        // 計算最終結果
+        function calculateResult() {
+            let maxScore = -1;
+            let resultKey = '';
+            
+            // 找出分數最高的怪物
+            for (const key in gameState.scores) {
+                if (gameState.scores[key] > maxScore) {
+                    maxScore = gameState.scores[key];
+                    resultKey = key;
+                } else if (gameState.scores[key] === maxScore) {
+                    // 如果平手，隨機選一個（或按字母順序，這裡使用隨機）
+                    if (Math.random() < 0.5) {
+                        resultKey = key;
+                    }
+                }
+            }
+            return monsters[resultKey];
+        }
+
+        // 主要渲染函數：根據 gameState.step 決定顯示哪個介面
+        function renderUI() {
+            app.innerHTML = '';
+            
+            if (gameState.step === 0) {
+                // 階段 0: 開始頁面
+                app.innerHTML = `
+                    <h1 class="text-4xl md:text-5xl font-extrabold neon-glow mb-4 text-center">
+                        潛意識👾異獸錄
+                    </h1>
+                    <p class="text-xl text-purple-300 mb-8 text-center">
+                        12道測試，揭露你內心深處的「心靈原型怪物」。
+                    </p>
+                    <button onclick="gameState.step = 1; renderUI();"
+                        class="px-8 py-4 text-2xl font-bold rounded-lg quiz-button border-4 border-pink-500 bg-pink-700/50 hover:bg-pink-600/70 neon-glow">
+                        ▶️ 開始深入潛意識
+                    </button>
+                    <p class="mt-8 text-sm text-gray-400">專為大學生設計，測出你的黑暗面</p>
+                `;
+            } else if (gameState.step >= 1 && gameState.step <= 12) {
+                // 階段 1-12: 答題頁面
+                const currentQ = questions[gameState.currentQIndex];
+                
+                let optionsHtml = currentQ.options.map(option => `
+                    <button data-score="${option.score}"
+                        class="quiz-button w-full text-left p-4 rounded-lg text-lg mb-4 hover:border-blue-400 hover:text-blue-200 transition duration-200">
+                        ${option.text}
+                    </button>
+                `).join('');
+
+                app.innerHTML = `
+                    <div class="text-center w-full">
+                        <p class="text-xl text-gray-400 mb-4">
+                            【分析進度】 ${gameState.step} / ${questions.length}
+                        </p>
+                        <h2 class="text-2xl md:text-3xl font-bold neon-glow mb-8 text-center">
+                            ${currentQ.q}
+                        </h2>
+                        <div id="options-container" class="space-y-4 w-full">
+                            ${optionsHtml}
+                        </div>
+                    </div>
+                `;
+                
+                // 綁定事件監聽器
+                document.getElementById('options-container').querySelectorAll('button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        handleAnswer(e.target.getAttribute('data-score'));
+                    });
+                });
+
+            } else if (gameState.step === 13) {
+                // 階段 13: 處理頁面 (Processing)
+                app.innerHTML = `
+                    <div class="text-center">
+                        <h2 class="text-4xl md:text-5xl font-extrabold text-yellow-300 glitch-text mb-6">
+                            正在校準潛意識頻率...
+                        </h2>
+                        <p class="text-2xl text-pink-400 mb-8">
+                            分析中，請稍候。
+                        </p>
+                        <!-- 模擬進度條 -->
+                        <div class="w-full h-4 bg-gray-700 rounded-full overflow-hidden border border-yellow-300">
+                            <div class="h-full bg-gradient-to-r from-pink-500 to-yellow-300 animate-pulse" style="width: 80%;"></div>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-500">
+                            Calculating Self-Doubt Ratio... 85%
+                        </p>
+                    </div>
+                `;
+            } else if (gameState.step === 14) {
+                // 階段 14: 結果頁面
+                const result = gameState.resultMonster;
+                
+                app.innerHTML = `
+                    <div class="text-center w-full">
+                        <h3 class="text-3xl md:text-4xl font-extrabold neon-glow mb-4 text-red-500">
+                            ⚠️ 警告！你的內心棲息著...
+                        </h3>
+                        <h1 class="text-5xl md:text-7xl font-black ${result.color} neon-glow glitch-text mb-8">
+                            ${result.name}
+                        </h1>
+
+                        <div class="bg-[#252540] p-6 rounded-xl text-left mb-6 border border-[#5A5A99]">
+                            <p class="text-lg font-bold text-gray-200 mb-3">【核心黑暗面描述】</p>
+                            <p class="text-gray-300 leading-relaxed">${result.desc}</p>
+                        </div>
+                        
+                        <div class="bg-yellow-900/40 p-6 rounded-xl text-left mb-6 border border-yellow-500/50">
+                            <p class="text-lg font-bold text-yellow-300 mb-3">✨ 異獸調和指南 (大學生專用)</p>
+                            <p class="text-yellow-200 leading-relaxed">${result.advice}</p>
+                        </div>
+
+                        <!-- 新增的職場發展建議區塊 -->
+                        <div class="bg-teal-900/40 p-6 rounded-xl text-left mb-10 border border-teal-500/50">
+                            <p class="text-lg font-bold text-teal-300 mb-3">💼 異獸潛能指引 (就業/職場建議)</p>
+                            <p class="text-teal-200 leading-relaxed">${result.careerAdvice}</p>
+                        </div>
+
+                        <button onclick="initGame()"
+                            class="px-6 py-3 text-lg font-bold rounded-lg quiz-button border-2 border-white/50 bg-gray-600/30 hover:bg-gray-500/50">
+                            🔄 重新測試潛意識
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 載入時初始化遊戲
+        window.onload = initGame;
+    </script>
+
+</body>
+</html>
