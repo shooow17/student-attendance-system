@@ -1,585 +1,588 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Plus, Trash2, Play, RefreshCcw, Trophy, Frown, Gift } from 'lucide-react';
-
-// --- 常數與設定 ---
-const CANVAS_WIDTH = 600;
-const CANVAS_HEIGHT = 600;
-const GRAVITY = 0.5;
-
-// --- 預設資料 ---
-const DEFAULT_PRIZES = [
-  { id: 1, name: '特獎：神秘小禮物', count: 1, weight: 10, type: 'win', color: '#FFD700' },
-  { id: 2, name: '二獎：下午茶券', count: 5, weight: 30, type: 'win', color: '#FF69B4' },
-  { id: 3, name: '銘謝惠顧', count: 999, weight: 60, type: 'lose', color: '#A9A9A9' },
-];
-
-export default function LuckyDrawApp() {
-  // --- State ---
-  const [config, setConfig] = useState({
-    title: '年終歡樂大抽獎',
-    boxColor: '#E63946',
-    boxPattern: 'circle', // circle, plain
-  });
-
-  const [prizes, setPrizes] = useState(DEFAULT_PRIZES);
-  const [gameState, setGameState] = useState('IDLE'); // IDLE, SHAKING, DRAWING, RESULT
-  const [result, setResult] = useState(null);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [showRain, setShowRain] = useState(false);
-
-  // --- Refs for Canvas & Animation ---
-  const canvasRef = useRef(null);
-  const requestRef = useRef(null);
-  const particlesRef = useRef([]);
-  const boxStateRef = useRef({
-    x: 300,
-    y: 400,
-    angle: 0,
-    scaleY: 1,
-    shakeIntensity: 0,
-    faceExpression: 'normal', // normal, dizzy, happy, sad
-    stickY: 0, // 用於籤升起的動畫
-  });
-
-  // --- 遊戲邏輯 ---
-
-  const handleStart = () => {
-    if (gameState !== 'IDLE') return;
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>萬能小白喜感互動抽籤遊戲</title>
     
-    // 檢查是否有剩餘獎品
-    const availablePrizes = prizes.filter(p => p.count > 0);
-    if (availablePrizes.length === 0) {
-      alert("所有獎品都抽完啦！");
-      return;
-    }
-
-    setGameState('SHAKING');
-    boxStateRef.current.faceExpression = 'dizzy';
-    boxStateRef.current.shakeIntensity = 20;
-
-    // 模擬搖晃 2秒後抽籤
-    setTimeout(() => {
-      setGameState('DRAWING');
-      boxStateRef.current.shakeIntensity = 0;
-      boxStateRef.current.faceExpression = 'expecting';
-      startDrawLogic(availablePrizes);
-    }, 2000);
-  };
-
-  const startDrawLogic = (availablePrizes) => {
-    // 權重抽籤演算法
-    const totalWeight = availablePrizes.reduce((sum, item) => sum + parseInt(item.weight), 0);
-    let random = Math.random() * totalWeight;
-    let selected = null;
-
-    for (const prize of availablePrizes) {
-      if (random < prize.weight) {
-        selected = prize;
-        break;
-      }
-      random -= prize.weight;
-    }
-
-    if (!selected) selected = availablePrizes[availablePrizes.length - 1];
-
-    // 模擬籤升起的動畫時間
-    let progress = 0;
-    const drawInterval = setInterval(() => {
-      progress += 2;
-      boxStateRef.current.stickY = progress;
-      if (progress > 100) {
-        clearInterval(drawInterval);
-        finalizeResult(selected);
-      }
-    }, 20);
-  };
-
-  const finalizeResult = (selectedPrize) => {
-    setResult(selectedPrize);
-    setGameState('RESULT');
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    // 扣除庫存
-    setPrizes(prev => prev.map(p => 
-      p.id === selectedPrize.id ? { ...p, count: p.count - 1 } : p
-    ));
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-    // 設定表情與特效
-    if (selectedPrize.type === 'win') {
-      boxStateRef.current.faceExpression = 'happy';
-      triggerConfetti();
-    } else {
-      boxStateRef.current.faceExpression = 'sad';
-      triggerRain();
-    }
-  };
-
-  const resetGame = () => {
-    setGameState('IDLE');
-    setResult(null);
-    setShowConfetti(false);
-    setShowRain(false);
-    particlesRef.current = [];
-    boxStateRef.current.stickY = 0;
-    boxStateRef.current.faceExpression = 'normal';
-    boxStateRef.current.angle = 0;
-  };
-
-  // --- 特效邏輯 ---
-
-  const triggerConfetti = () => {
-    setShowConfetti(true);
-    for (let i = 0; i < 150; i++) {
-      particlesRef.current.push({
-        x: CANVAS_WIDTH / 2,
-        y: CANVAS_HEIGHT / 2,
-        vx: (Math.random() - 0.5) * 15,
-        vy: (Math.random() - 1) * 15 - 5,
-        color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-        size: Math.random() * 10 + 5,
-        type: 'confetti',
-        rotation: Math.random() * 360,
-        rotationSpeed: (Math.random() - 0.5) * 10
-      });
-    }
-  };
-
-  const triggerRain = () => {
-    setShowRain(true);
-    for (let i = 0; i < 100; i++) {
-      particlesRef.current.push({
-        x: Math.random() * CANVAS_WIDTH,
-        y: -50 - Math.random() * 500, // 從上面落下
-        vx: 0,
-        vy: Math.random() * 5 + 2,
-        color: '#87CEEB',
-        size: Math.random() * 3 + 2,
-        type: 'rain',
-        length: Math.random() * 20 + 10
-      });
-    }
-  };
-
-  // --- Canvas 繪圖迴圈 ---
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    const draw = () => {
-      // 1. 清空畫布
-      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      // 背景微光 (可選)
-      const gradient = ctx.createRadialGradient(300, 300, 50, 300, 300, 400);
-      gradient.addColorStop(0, '#ffffff');
-      gradient.addColorStop(1, '#f3f4f6');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      // 2. 更新物理狀態
-      const state = boxStateRef.current;
-      
-      // 搖晃邏輯
-      if (gameState === 'SHAKING') {
-        state.angle = Math.sin(Date.now() / 50) * (state.shakeIntensity * 0.01);
-        state.x = 300 + Math.sin(Date.now() / 20) * state.shakeIntensity;
-        state.y = 400 + Math.cos(Date.now() / 20) * (state.shakeIntensity / 2);
-      } else if (gameState === 'IDLE') {
-        // 呼吸效果
-        state.scaleY = 1 + Math.sin(Date.now() / 500) * 0.02;
-        state.y = 400;
-        state.x = 300;
-        state.angle = 0;
-      }
-
-      // 3. 繪製
-      ctx.save();
-      ctx.translate(state.x, state.y);
-      ctx.rotate(state.angle);
-      ctx.scale(1, state.scaleY);
-
-      // --- 繪製籤筒 (分層：後 -> 籤 -> 前) ---
-      
-      // A. 籤筒內部/後方
-      ctx.fillStyle = darkenColor(config.boxColor, 20);
-      ctx.beginPath();
-      ctx.ellipse(0, -60, 70, 20, 0, Math.PI, 0); // 筒口後緣
-      ctx.fill();
-
-      // B. 籤 (Sticks)
-      // 如果正在抽籤，畫一根升起的籤
-      if (gameState === 'DRAWING' || gameState === 'RESULT') {
-        ctx.fillStyle = '#DEB887'; // 木頭色
-        const stickH = 120;
-        // 籤的位置隨 state.stickY 上升
-        ctx.fillRect(-10, -60 - state.stickY, 20, stickH);
-        
-        // 籤上的文字 (隱約)
-        if (state.stickY > 50) {
-            ctx.fillStyle = '#8B4513';
-            ctx.font = '12px Arial';
-            ctx.fillText("?", -3, -60 - state.stickY + 30);
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow: hidden; /* 防止捲動 */
         }
-      }
-
-      // 畫一堆靜止的籤頭
-      if (gameState !== 'RESULT') {
-        ctx.fillStyle = '#D2B48C';
-        for(let i=-40; i<40; i+=10) {
-            if (gameState === 'DRAWING' && Math.abs(i) < 10) continue; // 中間那根在升起
-            ctx.fillRect(i, -70 + Math.abs(i)/3, 8, 40);
+        /* 自定義捲軸樣式 */
+        ::-webkit-scrollbar {
+            width: 6px;
         }
-      }
-
-      // C. 籤筒主體
-      ctx.fillStyle = config.boxColor;
-      ctx.beginPath();
-      // 筒身
-      ctx.moveTo(-70, -60);
-      ctx.lineTo(-60, 100); // 稍微內縮造成圓柱感
-      ctx.quadraticCurveTo(0, 120, 60, 100);
-      ctx.lineTo(70, -60);
-      ctx.fill();
-      
-      // 裝飾線條
-      ctx.strokeStyle = '#FFD700';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(-68, -50);
-      ctx.quadraticCurveTo(0, -30, 68, -50);
-      ctx.stroke();
-
-      // 筒口前緣
-      ctx.fillStyle = darkenColor(config.boxColor, -10); // 亮一點
-      ctx.beginPath();
-      ctx.ellipse(0, -60, 70, 20, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke(); // 金邊
-
-      // D. 表情 (Face)
-      drawFace(ctx, state.faceExpression);
-
-      ctx.restore(); // End Box transform
-
-      // 4. 粒子特效 (Global coordinates)
-      updateAndDrawParticles(ctx);
-
-      requestRef.current = requestAnimationFrame(draw);
-    };
-
-    // Helper: Draw Face
-    const drawFace = (ctx, expression) => {
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = 3;
-
-        if (expression === 'normal') {
-            // 眼睛
-            ctx.beginPath(); ctx.arc(-25, 0, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            ctx.beginPath(); ctx.arc(25, 0, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            // 嘴巴
-            ctx.beginPath(); ctx.arc(0, 10, 10, 0, Math.PI, false); ctx.stroke();
-        } else if (expression === 'dizzy') {
-            // 暈眩眼
-            ctx.font = '30px Arial';
-            ctx.fillStyle = '#333';
-            ctx.fillText('X', -35, 10);
-            ctx.fillText('X', 15, 10);
-            // 波浪嘴
-            ctx.beginPath();
-            ctx.moveTo(-10, 30);
-            ctx.quadraticCurveTo(0, 20, 10, 30);
-            ctx.stroke();
-        } else if (expression === 'happy') {
-            // 笑眼
-            ctx.beginPath(); ctx.arc(-25, 0, 10, Math.PI, 0); ctx.stroke();
-            ctx.beginPath(); ctx.arc(25, 0, 10, Math.PI, 0); ctx.stroke();
-            // 大笑嘴
-            ctx.fillStyle = '#333';
-            ctx.beginPath(); ctx.arc(0, 15, 15, 0, Math.PI); ctx.fill();
-        } else if (expression === 'sad') {
-            // 哭眼
-            ctx.beginPath();
-            ctx.moveTo(-35, 5); ctx.lineTo(-15, -5); ctx.stroke();
-            ctx.moveTo(35, 5); ctx.lineTo(15, -5); ctx.stroke();
-            // 淚水
-            ctx.fillStyle = '#87CEEB';
-            ctx.beginPath(); ctx.arc(-25, 15, 3, 0, Math.PI*2); ctx.fill();
-            // 癟嘴
-            ctx.beginPath(); ctx.arc(0, 35, 10, Math.PI, 0); ctx.stroke();
-        } else if (expression === 'expecting') {
-            // 期待眼 (向上看)
-            ctx.beginPath(); ctx.arc(-25, -5, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            ctx.beginPath(); ctx.arc(25, -5, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-            // O嘴
-            ctx.beginPath(); ctx.arc(0, 20, 5, 0, Math.PI*2); ctx.stroke();
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
         }
-    };
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen w-screen flex flex-col lg:flex-row overflow-hidden">
 
-    // Helper: Particles
-    const updateAndDrawParticles = (ctx) => {
-        for (let i = particlesRef.current.length - 1; i >= 0; i--) {
-            let p = particlesRef.current[i];
+    <!-- 左側設定面板 -->
+    <div class="w-full lg:w-1/3 bg-white shadow-xl flex flex-col z-20 h-1/3 lg:h-full">
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-100 bg-white">
+            <h1 class="text-xl lg:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i data-lucide="settings" class="w-6 h-6"></i>
+                遊戲設定
+            </h1>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
             
-            // Physics
-            p.x += p.vx;
-            p.y += p.vy;
-
-            if (p.type === 'confetti') {
-                p.vy += GRAVITY;
-                p.vx *= 0.95; // air resistance
-                p.rotation += p.rotationSpeed;
-                
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation * Math.PI / 180);
-                ctx.fillStyle = p.color;
-                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
-                ctx.restore();
-            } else if (p.type === 'rain') {
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(p.x, p.y);
-                ctx.lineTo(p.x, p.y + p.length);
-                ctx.stroke();
-            }
-
-            // Remove if off screen
-            if (p.y > CANVAS_HEIGHT + 50) {
-                particlesRef.current.splice(i, 1);
-            }
-        }
-    };
-
-    requestRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(requestRef.current);
-  }, [gameState, config.boxColor]); // Re-bind if vital props change
-
-  // --- Utility: Darken Color ---
-  const darkenColor = (col, amt) => {
-    // 簡單的 hex 變暗處理 (為了不引入外部庫，簡化處理)
-    // 這裡假設輸入都是 #RRGGBB
-    let usePound = false;
-    if (col[0] === "#") {
-        col = col.slice(1);
-        usePound = true;
-    }
-    let num = parseInt(col, 16);
-    let r = (num >> 16) + amt;
-    let b = ((num >> 8) & 0x00FF) + amt;
-    let g = (num & 0x0000FF) + amt;
-    if (r > 255) r = 255; else if (r < 0) r = 0;
-    if (b > 255) b = 255; else if (b < 0) b = 0;
-    if (g > 255) g = 255; else if (g < 0) g = 0;
-    return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
-  };
-
-  // --- Handler Functions ---
-  const addPrize = () => {
-    const newId = prizes.length > 0 ? Math.max(...prizes.map(p => p.id)) + 1 : 1;
-    setPrizes([...prizes, { id: newId, name: '新獎品', count: 1, weight: 10, type: 'win', color: '#FFD700' }]);
-  };
-
-  const removePrize = (id) => {
-    setPrizes(prizes.filter(p => p.id !== id));
-  };
-
-  const updatePrize = (id, field, value) => {
-    setPrizes(prizes.map(p => p.id === id ? { ...p, [field]: value } : p));
-  };
-
-  return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-100 font-sans overflow-hidden">
-      
-      {/* --- 左側設定面板 --- */}
-      <div className="w-full lg:w-1/3 bg-white shadow-xl p-6 overflow-y-auto z-10">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-          <Settings className="w-6 h-6" />
-          遊戲設定
-        </h1>
-
-        <div className="space-y-6">
-          {/* 1. 基本設定 */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">活動資訊</h2>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">活動標題</label>
-                <input 
-                  type="text" 
-                  value={config.title} 
-                  onChange={(e) => setConfig({...config, title: e.target.value})}
-                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">籤筒顏色</label>
-                <div className="flex gap-2">
-                  {['#E63946', '#457B9D', '#2A9D8F', '#F4A261', '#9B5DE5'].map(c => (
-                    <button 
-                      key={c}
-                      className={`w-8 h-8 rounded-full border-2 ${config.boxColor === c ? 'border-black scale-110' : 'border-transparent'}`}
-                      style={{ backgroundColor: c }}
-                      onClick={() => setConfig({...config, boxColor: c})}
-                    />
-                  ))}
+            <!-- 1. 基本設定 -->
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">活動資訊</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">活動標題</label>
+                        <input type="text" id="titleInput" class="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm" value="年終歡樂大抽獎">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">籤筒顏色</label>
+                        <div class="flex gap-2" id="colorPicker">
+                            <!-- JS 會動態生成按鈕 -->
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
-          </div>
 
-          {/* 2. 獎品列表 */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">獎品清單</h2>
-              <button onClick={addPrize} className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 font-medium">
-                <Plus size={16} /> 新增
-              </button>
-            </div>
-            
-            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-              {prizes.map(p => (
-                <div key={p.id} className="bg-white p-3 rounded shadow-sm border border-gray-100 flex flex-col gap-2 relative group">
-                  <div className="flex gap-2 items-center">
-                    <input 
-                      type="text" 
-                      value={p.name}
-                      onChange={(e) => updatePrize(p.id, 'name', e.target.value)}
-                      className="flex-1 border-b border-gray-300 focus:border-blue-500 outline-none px-1 text-sm font-medium"
-                      placeholder="獎品名稱"
-                    />
-                    <select 
-                      value={p.type}
-                      onChange={(e) => updatePrize(p.id, 'type', e.target.value)}
-                      className="text-xs bg-gray-100 rounded px-1 py-1"
-                    >
-                      <option value="win">中獎</option>
-                      <option value="lose">沒中</option>
-                    </select>
-                    <button onClick={() => removePrize(p.id)} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Trash2 size={16} />
+            <!-- 2. 獎品列表 -->
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">獎品清單</h2>
+                    <button id="addPrizeBtn" class="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 font-medium">
+                        <i data-lucide="plus" class="w-4 h-4"></i> 新增
                     </button>
-                  </div>
-                  <div className="flex gap-4 text-xs text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <span>數量:</span>
-                      <input 
-                        type="number" 
-                        min="0"
-                        value={p.count}
-                        onChange={(e) => updatePrize(p.id, 'count', parseInt(e.target.value) || 0)}
-                        className="w-16 border rounded px-1 py-0.5"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span>權重:</span>
-                      <input 
-                        type="number" 
-                        min="1"
-                        value={p.weight}
-                        onChange={(e) => updatePrize(p.id, 'weight', parseInt(e.target.value) || 1)}
-                        className="w-12 border rounded px-1 py-0.5"
-                        title="權重越高，被抽中的機率越高"
-                      />
-                    </div>
-                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 text-xs text-gray-400 text-center">
-          權重邏輯：該獎品權重 / 總權重 = 中獎率
-        </div>
-      </div>
-
-      {/* --- 右側遊戲區 --- */}
-      <div className="flex-1 relative bg-slate-200 flex flex-col items-center justify-center p-4">
-        
-        {/* 標題 */}
-        <div className="absolute top-10 w-full text-center z-10 pointer-events-none">
-          <h1 className="text-4xl md:text-5xl font-black text-gray-800 tracking-wider drop-shadow-lg">
-            {config.title}
-          </h1>
-          <p className="text-gray-600 mt-2 font-medium">祝您中大獎！</p>
-        </div>
-
-        {/* Canvas */}
-        <div className="relative shadow-2xl rounded-full overflow-hidden border-8 border-white bg-white">
-          <canvas 
-            ref={canvasRef} 
-            width={CANVAS_WIDTH} 
-            height={CANVAS_HEIGHT} 
-            className="block w-full h-auto max-w-[500px]"
-          />
-        </div>
-
-        {/* 控制按鈕 */}
-        <div className="absolute bottom-10 flex gap-4 z-10">
-          <button 
-            onClick={handleStart}
-            disabled={gameState !== 'IDLE'}
-            className={`
-              flex items-center gap-2 px-8 py-4 rounded-full text-xl font-bold text-white shadow-lg transform transition-all
-              ${gameState === 'IDLE' 
-                ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:scale-105 active:scale-95 hover:shadow-xl' 
-                : 'bg-gray-400 cursor-not-allowed opacity-80'}
-            `}
-          >
-            {gameState === 'IDLE' ? (
-              <>
-                <Play fill="white" /> 開始抽籤
-              </>
-            ) : (
-              '抽籤中...'
-            )}
-          </button>
-        </div>
-
-        {/* --- 結果 Modal --- */}
-        {result && gameState === 'RESULT' && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl transform scale-100 animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
-              
-              <div className="mb-4 flex justify-center">
-                {result.type === 'win' ? (
-                  <div className="bg-yellow-100 p-4 rounded-full">
-                    <Trophy className="w-16 h-16 text-yellow-500 animate-bounce" />
-                  </div>
-                ) : (
-                  <div className="bg-blue-100 p-4 rounded-full">
-                    <Frown className="w-16 h-16 text-blue-500" />
-                  </div>
-                )}
-              </div>
-
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                {result.type === 'win' ? '恭喜中獎！' : '再接再厲！'}
-              </h2>
-              
-              <div className="text-xl text-gray-600 mb-8 font-medium py-4 border-t border-b border-gray-100">
-                {result.name}
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={resetGame}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <RefreshCcw size={20} /> 再抽一次
-                </button>
-                <div className="text-sm text-gray-400">
-                  {result.count > 0 ? `此獎項剩餘: ${result.count}` : '此獎項已抽完'}
+                
+                <div id="prizesList" class="space-y-3 pr-1">
+                    <!-- JS 動態生成獎品項目 -->
                 </div>
-              </div>
-
             </div>
-          </div>
-        )}
 
-      </div>
+            <div class="text-xs text-gray-400 text-center pb-4">
+                權重邏輯：該獎品權重 / 總權重 = 中獎率
+            </div>
+        </div>
     </div>
-  );
-}
+
+    <!-- 右側遊戲區 -->
+    <div class="flex-1 relative bg-slate-200 flex flex-col items-center justify-center p-4 h-2/3 lg:h-full">
+        
+        <!-- 標題顯示 -->
+        <div class="absolute top-4 lg:top-10 w-full text-center z-10 pointer-events-none px-4">
+            <h1 id="displayTitle" class="text-3xl lg:text-5xl font-black text-gray-800 tracking-wider drop-shadow-lg truncate">
+                年終歡樂大抽獎
+            </h1>
+            <p class="text-gray-600 mt-2 font-medium">祝您中大獎！</p>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="relative shadow-2xl rounded-full overflow-hidden border-8 border-white bg-white w-64 h-64 sm:w-80 sm:h-80 lg:w-[500px] lg:h-[500px]">
+            <canvas id="gameCanvas" width="600" height="600" class="w-full h-full"></canvas>
+        </div>
+
+        <!-- Start Button -->
+        <div class="absolute bottom-6 lg:bottom-10 flex gap-4 z-10">
+            <button id="startBtn" class="flex items-center gap-2 px-8 py-3 lg:py-4 rounded-full text-lg lg:text-xl font-bold text-white shadow-lg transform transition-all bg-gradient-to-r from-red-500 to-orange-500 hover:scale-105 active:scale-95 hover:shadow-xl">
+                <i data-lucide="play" class="w-5 h-5 fill-current"></i> 開始抽籤
+            </button>
+        </div>
+
+        <!-- 結果 Modal (隱藏狀態) -->
+        <div id="resultModal" class="hidden absolute inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+            <div class="bg-white rounded-3xl p-6 lg:p-8 max-w-md w-full text-center shadow-2xl transform scale-100 border-4 border-yellow-400 animation-pop">
+                
+                <div class="mb-4 flex justify-center" id="resultIconContainer">
+                    <!-- Icon inject here -->
+                </div>
+
+                <h2 id="resultTitle" class="text-2xl lg:text-3xl font-bold text-gray-800 mb-2"></h2>
+                
+                <div id="resultName" class="text-xl text-gray-600 mb-6 font-medium py-4 border-t border-b border-gray-100"></div>
+
+                <div class="flex flex-col gap-3">
+                    <button id="retryBtn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="refresh-ccw" class="w-5 h-5"></i> 再抽一次
+                    </button>
+                    <div id="resultMeta" class="text-sm text-gray-400"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- 常數與全局變數 ---
+        const CANVAS_WIDTH = 600;
+        const CANVAS_HEIGHT = 600;
+        const GRAVITY = 0.5;
+
+        // 狀態資料
+        let config = {
+            title: '年終歡樂大抽獎',
+            boxColor: '#E63946',
+        };
+
+        let prizes = [
+            { id: 1, name: '特獎：神秘小禮物', count: 1, weight: 10, type: 'win' },
+            { id: 2, name: '二獎：下午茶券', count: 5, weight: 30, type: 'win' },
+            { id: 3, name: '銘謝惠顧', count: 999, weight: 60, type: 'lose' },
+        ];
+
+        let gameState = 'IDLE'; // IDLE, SHAKING, DRAWING, RESULT
+        let particles = [];
+        let boxState = {
+            x: 300,
+            y: 400,
+            angle: 0,
+            scaleY: 1,
+            shakeIntensity: 0,
+            faceExpression: 'normal',
+            stickY: 0
+        };
+
+        // --- DOM 元素參考 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const resultModal = document.getElementById('resultModal');
+        const retryBtn = document.getElementById('retryBtn');
+        const prizesListEl = document.getElementById('prizesList');
+        const titleInput = document.getElementById('titleInput');
+        const displayTitle = document.getElementById('displayTitle');
+        const colorPicker = document.getElementById('colorPicker');
+
+        // --- 初始化 ---
+        window.onload = () => {
+            lucide.createIcons();
+            renderPrizes();
+            renderColorPicker();
+            requestAnimationFrame(drawLoop);
+
+            // 綁定基本事件
+            titleInput.addEventListener('input', (e) => {
+                config.title = e.target.value;
+                displayTitle.textContent = config.title;
+            });
+
+            startBtn.addEventListener('click', handleStart);
+            retryBtn.addEventListener('click', resetGame);
+            
+            document.getElementById('addPrizeBtn').addEventListener('click', addPrize);
+        };
+
+        // --- 遊戲邏輯 ---
+
+        function handleStart() {
+            if (gameState !== 'IDLE') return;
+
+            // 檢查庫存
+            const availablePrizes = prizes.filter(p => p.count > 0);
+            if (availablePrizes.length === 0) {
+                alert("所有獎品都抽完啦！");
+                return;
+            }
+
+            // 更新 UI 狀態
+            gameState = 'SHAKING';
+            startBtn.disabled = true;
+            startBtn.innerHTML = `抽籤中...`;
+            startBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            startBtn.classList.remove('bg-gradient-to-r', 'from-red-500', 'to-orange-500');
+
+            // 設定動畫狀態
+            boxState.faceExpression = 'dizzy';
+            boxState.shakeIntensity = 20;
+
+            // 2秒後開始抽籤
+            setTimeout(() => {
+                gameState = 'DRAWING';
+                boxState.shakeIntensity = 0;
+                boxState.faceExpression = 'expecting';
+                startDrawLogic(availablePrizes);
+            }, 2000);
+        }
+
+        function startDrawLogic(availablePrizes) {
+            // 權重抽籤
+            const totalWeight = availablePrizes.reduce((sum, item) => sum + parseInt(item.weight), 0);
+            let random = Math.random() * totalWeight;
+            let selected = null;
+
+            for (const prize of availablePrizes) {
+                if (random < prize.weight) {
+                    selected = prize;
+                    break;
+                }
+                random -= prize.weight;
+            }
+            if (!selected) selected = availablePrizes[availablePrizes.length - 1];
+
+            // 籤升起動畫
+            let progress = 0;
+            const drawInterval = setInterval(() => {
+                progress += 2;
+                boxState.stickY = progress;
+                if (progress > 100) {
+                    clearInterval(drawInterval);
+                    finalizeResult(selected);
+                }
+            }, 20);
+        }
+
+        function finalizeResult(selectedPrize) {
+            gameState = 'RESULT';
+            
+            // 扣庫存
+            const idx = prizes.findIndex(p => p.id === selectedPrize.id);
+            if(idx !== -1) {
+                prizes[idx].count--;
+                renderPrizes(); // 更新列表顯示數量
+            }
+
+            // 表情與特效
+            if (selectedPrize.type === 'win') {
+                boxState.faceExpression = 'happy';
+                triggerConfetti();
+            } else {
+                boxState.faceExpression = 'sad';
+                triggerRain();
+            }
+
+            // 顯示 Modal
+            setTimeout(() => {
+                showResultModal(selectedPrize);
+            }, 500);
+        }
+
+        function showResultModal(prize) {
+            const isWin = prize.type === 'win';
+            const iconHtml = isWin 
+                ? `<div class="bg-yellow-100 p-4 rounded-full"><i data-lucide="trophy" class="w-16 h-16 text-yellow-500"></i></div>`
+                : `<div class="bg-blue-100 p-4 rounded-full"><i data-lucide="frown" class="w-16 h-16 text-blue-500"></i></div>`;
+            
+            document.getElementById('resultIconContainer').innerHTML = iconHtml;
+            document.getElementById('resultTitle').textContent = isWin ? '恭喜中獎！' : '再接再厲！';
+            document.getElementById('resultName').textContent = prize.name;
+            document.getElementById('resultMeta').textContent = prize.count > 0 ? `此獎項剩餘: ${prize.count}` : '此獎項已抽完';
+            
+            resultModal.classList.remove('hidden');
+            lucide.createIcons(); // 刷新 icon
+        }
+
+        function resetGame() {
+            gameState = 'IDLE';
+            resultModal.classList.add('hidden');
+            particles = [];
+            boxState.stickY = 0;
+            boxState.faceExpression = 'normal';
+            boxState.angle = 0;
+            
+            // 重置按鈕
+            startBtn.disabled = false;
+            startBtn.innerHTML = `<i data-lucide="play" class="w-5 h-5 fill-current"></i> 開始抽籤`;
+            startBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            startBtn.classList.add('bg-gradient-to-r', 'from-red-500', 'to-orange-500');
+            lucide.createIcons();
+        }
+
+        // --- Canvas 繪圖 ---
+
+        function drawLoop() {
+            // 1. 清空
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // 背景
+            const gradient = ctx.createRadialGradient(300, 300, 50, 300, 300, 400);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(1, '#f3f4f6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // 2. 物理計算
+            if (gameState === 'SHAKING') {
+                boxState.angle = Math.sin(Date.now() / 50) * (boxState.shakeIntensity * 0.01);
+                boxState.x = 300 + Math.sin(Date.now() / 20) * boxState.shakeIntensity;
+                boxState.y = 400 + Math.cos(Date.now() / 20) * (boxState.shakeIntensity / 2);
+            } else if (gameState === 'IDLE') {
+                boxState.scaleY = 1 + Math.sin(Date.now() / 500) * 0.02;
+                boxState.y = 400;
+                boxState.x = 300;
+                boxState.angle = 0;
+            }
+
+            // 3. 繪製物體
+            ctx.save();
+            ctx.translate(boxState.x, boxState.y);
+            ctx.rotate(boxState.angle);
+            ctx.scale(1, boxState.scaleY);
+
+            // A. 籤筒後緣
+            ctx.fillStyle = darkenColor(config.boxColor, 20);
+            ctx.beginPath();
+            ctx.ellipse(0, -60, 70, 20, 0, Math.PI, 0);
+            ctx.fill();
+
+            // B. 籤 (動態 + 靜態)
+            if (gameState === 'DRAWING' || gameState === 'RESULT') {
+                ctx.fillStyle = '#DEB887';
+                const stickH = 120;
+                ctx.fillRect(-10, -60 - boxState.stickY, 20, stickH);
+                if (boxState.stickY > 50) {
+                    ctx.fillStyle = '#8B4513';
+                    ctx.font = '12px Arial';
+                    ctx.fillText("?", -3, -60 - boxState.stickY + 30);
+                }
+            }
+            if (gameState !== 'RESULT') {
+                ctx.fillStyle = '#D2B48C';
+                for(let i=-40; i<40; i+=10) {
+                    if (gameState === 'DRAWING' && Math.abs(i) < 10) continue;
+                    ctx.fillRect(i, -70 + Math.abs(i)/3, 8, 40);
+                }
+            }
+
+            // C. 籤筒主體
+            ctx.fillStyle = config.boxColor;
+            ctx.beginPath();
+            ctx.moveTo(-70, -60);
+            ctx.lineTo(-60, 100);
+            ctx.quadraticCurveTo(0, 120, 60, 100);
+            ctx.lineTo(70, -60);
+            ctx.fill();
+
+            // 裝飾
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(-68, -50);
+            ctx.quadraticCurveTo(0, -30, 68, -50);
+            ctx.stroke();
+
+            // 筒口前緣
+            ctx.fillStyle = darkenColor(config.boxColor, -10);
+            ctx.beginPath();
+            ctx.ellipse(0, -60, 70, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // D. 表情
+            drawFace(ctx, boxState.faceExpression);
+
+            ctx.restore();
+
+            // 4. 粒子特效
+            updateAndDrawParticles(ctx);
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        function drawFace(ctx, expression) {
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 3;
+
+            if (expression === 'normal') {
+                ctx.beginPath(); ctx.arc(-25, 0, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(25, 0, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 10, 10, 0, Math.PI, false); ctx.stroke();
+            } else if (expression === 'dizzy') {
+                ctx.font = '30px Arial';
+                ctx.fillStyle = '#333';
+                ctx.fillText('X', -35, 10);
+                ctx.fillText('X', 15, 10);
+                ctx.beginPath(); ctx.moveTo(-10, 30); ctx.quadraticCurveTo(0, 20, 10, 30); ctx.stroke();
+            } else if (expression === 'happy') {
+                ctx.beginPath(); ctx.arc(-25, 0, 10, Math.PI, 0); ctx.stroke();
+                ctx.beginPath(); ctx.arc(25, 0, 10, Math.PI, 0); ctx.stroke();
+                ctx.fillStyle = '#333'; ctx.beginPath(); ctx.arc(0, 15, 15, 0, Math.PI); ctx.fill();
+            } else if (expression === 'sad') {
+                ctx.beginPath(); ctx.moveTo(-35, 5); ctx.lineTo(-15, -5); ctx.stroke();
+                ctx.moveTo(35, 5); ctx.lineTo(15, -5); ctx.stroke();
+                ctx.fillStyle = '#87CEEB'; ctx.beginPath(); ctx.arc(-25, 15, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(0, 35, 10, Math.PI, 0); ctx.stroke();
+            } else if (expression === 'expecting') {
+                ctx.beginPath(); ctx.arc(-25, -5, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(25, -5, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 20, 5, 0, Math.PI*2); ctx.stroke();
+            }
+        }
+
+        // --- 特效與粒子 ---
+
+        function triggerConfetti() {
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: CANVAS_WIDTH / 2,
+                    y: CANVAS_HEIGHT / 2,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 1) * 15 - 5,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    size: Math.random() * 10 + 5,
+                    type: 'confetti',
+                    rotation: Math.random() * 360,
+                    rotationSpeed: (Math.random() - 0.5) * 10
+                });
+            }
+        }
+
+        function triggerRain() {
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: Math.random() * CANVAS_WIDTH,
+                    y: -50 - Math.random() * 500,
+                    vx: 0,
+                    vy: Math.random() * 5 + 2,
+                    color: '#87CEEB',
+                    size: Math.random() * 3 + 2,
+                    type: 'rain',
+                    length: Math.random() * 20 + 10
+                });
+            }
+        }
+
+        function updateAndDrawParticles(ctx) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+
+                if (p.type === 'confetti') {
+                    p.vy += GRAVITY;
+                    p.vx *= 0.95;
+                    p.rotation += p.rotationSpeed;
+                    
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * Math.PI / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                } else if (p.type === 'rain') {
+                    ctx.strokeStyle = p.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.x, p.y + p.length);
+                    ctx.stroke();
+                }
+
+                if (p.y > CANVAS_HEIGHT + 50) particles.splice(i, 1);
+            }
+        }
+
+        // --- DOM 渲染輔助 ---
+
+        function renderColorPicker() {
+            const colors = ['#E63946', '#457B9D', '#2A9D8F', '#F4A261', '#9B5DE5'];
+            const container = document.getElementById('colorPicker');
+            container.innerHTML = '';
+            colors.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = `w-8 h-8 rounded-full border-2 transition-transform ${config.boxColor === c ? 'border-black scale-110' : 'border-transparent'}`;
+                btn.style.backgroundColor = c;
+                btn.onclick = () => {
+                    config.boxColor = c;
+                    renderColorPicker();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderPrizes() {
+            prizesListEl.innerHTML = '';
+            prizes.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'bg-white p-3 rounded shadow-sm border border-gray-100 flex flex-col gap-2 relative group';
+                item.innerHTML = `
+                    <div class="flex gap-2 items-center">
+                        <input type="text" class="flex-1 border-b border-gray-300 focus:border-blue-500 outline-none px-1 text-sm font-medium" 
+                            value="${p.name}" onchange="updatePrize(${p.id}, 'name', this.value)">
+                        <select class="text-xs bg-gray-100 rounded px-1 py-1" onchange="updatePrize(${p.id}, 'type', this.value)">
+                            <option value="win" ${p.type === 'win' ? 'selected' : ''}>中獎</option>
+                            <option value="lose" ${p.type === 'lose' ? 'selected' : ''}>沒中</option>
+                        </select>
+                        <button onclick="removePrize(${p.id})" class="text-gray-400 hover:text-red-500">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="flex gap-4 text-xs text-gray-600">
+                        <div class="flex items-center gap-1">
+                            <span>數量:</span>
+                            <input type="number" min="0" class="w-16 border rounded px-1 py-0.5" value="${p.count}" onchange="updatePrize(${p.id}, 'count', parseInt(this.value))">
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span>權重:</span>
+                            <input type="number" min="1" class="w-12 border rounded px-1 py-0.5" value="${p.weight}" onchange="updatePrize(${p.id}, 'weight', parseInt(this.value))">
+                        </div>
+                    </div>
+                `;
+                prizesListEl.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        // --- 數據操作輔助 ---
+
+        function addPrize() {
+            const newId = prizes.length > 0 ? Math.max(...prizes.map(p => p.id)) + 1 : 1;
+            prizes.push({ id: newId, name: '新獎品', count: 1, weight: 10, type: 'win' });
+            renderPrizes();
+        }
+
+        function removePrize(id) {
+            prizes = prizes.filter(p => p.id !== id);
+            renderPrizes();
+        }
+
+        function updatePrize(id, field, value) {
+            const p = prizes.find(item => item.id === id);
+            if (p) {
+                p[field] = value;
+                // 不用重新渲染整個列表，以免 input 失去焦點
+            }
+        }
+        
+        // 將這些函數掛載到 window 以便 onclick 調用
+        window.removePrize = removePrize;
+        window.updatePrize = updatePrize;
+
+        function darkenColor(col, amt) {
+            let usePound = false;
+            if (col[0] === "#") {
+                col = col.slice(1);
+                usePound = true;
+            }
+            let num = parseInt(col, 16);
+            let r = (num >> 16) + amt;
+            let b = ((num >> 8) & 0x00FF) + amt;
+            let g = (num & 0x0000FF) + amt;
+            if (r > 255) r = 255; else if (r < 0) r = 0;
+            if (b > 255) b = 255; else if (b < 0) b = 0;
+            if (g > 255) g = 255; else if (g < 0) g = 0;
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+        }
+
+    </script>
+</body>
+</html>
