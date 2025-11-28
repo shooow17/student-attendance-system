@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可愛 3D 番茄鐘</title>
+    <!-- 引入 Tailwind CSS for modern UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- 引入 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 引入 Three.js 軌道控制器 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- 引入 Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // 確保所有需要的函式都從 Firebase Auth 模組中導入
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // 確保所有需要的函式都從 Firebase Firestore 模組中導入
+        import { getFirestore, doc, setDoc, onSnapshot, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // 確保在運行環境中 __app_id, __firebase_config, __initial_auth_token 存在
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        let firebaseConfig = null;
+        try {
+            firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        } catch (e) {
+            console.error("Firebase config is invalid:", e);
+        }
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            setLogLevel('Debug');
+
+            window.firebaseApp = app;
+            window.db = db;
+            window.auth = auth;
+            window.appId = appId;
+            
+            // 【修正：將必要的 Firebase 函式暴露給第二個模組腳本使用】
+            window.onAuthStateChanged = onAuthStateChanged;
+            window.doc = doc;
+            window.setDoc = setDoc;
+            window.onSnapshot = onSnapshot;
+
+            // 處理認證邏輯
+            if (initialAuthToken) {
+                signInWithCustomToken(auth, initialAuthToken)
+                    .catch(error => {
+                        console.error("Custom token sign-in failed:", error);
+                        signInAnonymously(auth); // Fallback to anonymous sign-in
+                    });
+            } else {
+                signInAnonymously(auth).catch(error => console.error("Anonymous sign-in failed:", error));
+            }
+        } else {
+            console.warn("Firebase is not configured. Data persistence will be disabled.");
+        }
+    </script>
+    <style>
+        /* 確保全屏和 Inter 字體 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* 柔和背景 */
+            margin: 0;
+            overflow: hidden;
+        }
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        /* 確保 Canvas 佔滿容器 */
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- 3D 場景將會渲染到這裡 -->
+        <canvas id="pomodoro-canvas"></canvas>
+
+        <!-- UI 控制面板 (使用 Tailwind 居中定位) -->
+        <div id="ui-panel" class="absolute inset-0 flex flex-col justify-end items-center p-4 sm:p-8 pointer-events-none">
+            <!-- 主要計時器顯示 -->
+            <div class="bg-white/90 backdrop-blur-sm p-4 sm:p-6 rounded-3xl shadow-2xl mb-6 w-11/12 max-w-sm pointer-events-auto">
+                <p id="user-id-display" class="text-xs text-gray-500 mb-2 truncate">用戶 ID: 載入中...</p>
+                <div class="flex flex-col items-center">
+                    <h2 id="phase-display" class="text-3xl font-bold mb-1 text-pink-500">專注時間</h2>
+                    <div id="time-display" class="text-6xl sm:text-7xl font-extrabold text-gray-800 mb-4">25:00</div>
+                    <div class="flex space-x-4">
+                        <button id="start-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition duration-200 pointer-events-auto flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            開始
+                        </button>
+                        <button id="reset-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 px-6 rounded-full shadow-lg transition duration-200 pointer-events-auto flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.91 8.91 0 0120 12a9 9 0 01-18 0c0-3.042 1.135-5.824 3-7.938l3.626 3.625"></path></svg>
+                            重設
+                        </button>
+                    </div>
+                    <div class="text-sm text-gray-600 mt-3">
+                        循環數: <span id="cycle-count" class="font-bold text-indigo-500">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 設定按鈕 - 浮動在右下角 -->
+            <button id="settings-toggle-btn" class="absolute bottom-4 right-4 bg-yellow-400 hover:bg-yellow-500 text-white p-4 rounded-full shadow-xl transition duration-200 pointer-events-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.255 2.573-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
+
+            <!-- 設定面板 Modal -->
+            <div id="settings-modal" class="hidden absolute inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center pointer-events-auto">
+                <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-11/12 max-w-md">
+                    <h3 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">番茄鐘設定</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="work-time" class="block text-sm font-medium text-gray-700">專注時間 (分鐘)</label>
+                            <input type="number" id="work-time" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 text-lg" min="1" max="60" value="25">
+                        </div>
+                        <div>
+                            <label for="break-time" class="block text-sm font-medium text-gray-700">休息時間 (分鐘)</label>
+                            <input type="number" id="break-time" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 text-lg" min="1" max="15" value="5">
+                        </div>
+                        <div>
+                            <label for="long-break-time" class="block text-sm font-medium text-gray-700">長休息時間 (分鐘)</label>
+                            <input type="number" id="long-break-time" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 text-lg" min="5" max="60" value="15">
+                        </div>
+                        <div>
+                            <label for="long-break-cycles" class="block text-sm font-medium text-gray-700">長休息循環數</label>
+                            <input type="number" id="long-break-cycles" class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500 text-lg" min="2" max="10" value="4">
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-end space-x-3">
+                        <button id="save-settings-btn" class="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg transition duration-200">
+                            儲存設定
+                        </button>
+                        <button id="close-settings-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-full transition duration-200">
+                            關閉
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // =======================================================================
+        // I. Firebase & Firestore Setup and Data Management
+        // =======================================================================
+        let db, auth, userId, appId;
+        let isAuthReady = false;
+        
+        // 為了在模組腳本中能直接使用這些函式，將它們從 window 中提取出來
+        const onAuthStateChanged = window.onAuthStateChanged;
+        const doc = window.doc;
+        const setDoc = window.setDoc;
+        const onSnapshot = window.onSnapshot;
+
+
+        const DEFAULTS = {
+            work: 25,
+            break: 5,
+            longBreak: 15,
+            cycles: 4
+        };
+
+        const settings = { ...DEFAULTS };
+
+        /**
+         * 讀取 Firestore 上的番茄鐘設定
+         */
+        function startSettingsListener() {
+            if (!db || !userId) {
+                console.warn("Firestore not initialized or userId unavailable for listener.");
+                return;
+            }
+
+            // 確保函式已定義
+            if (typeof doc === 'undefined' || typeof onSnapshot === 'undefined' || typeof setDoc === 'undefined') {
+                console.error("Firestore functions (doc, onSnapshot, setDoc) are not defined. Check Firebase import setup.");
+                return;
+            }
+
+            const settingsRef = doc(db, 
+                `artifacts/${appId}/users/${userId}/pomodoro_settings/current`
+            );
+
+            onSnapshot(settingsRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const savedSettings = docSnap.data();
+                    Object.assign(settings, savedSettings);
+                    console.log("Settings loaded from Firestore:", settings);
+                } else {
+                    console.log("No saved settings found. Using defaults.");
+                    // 如果沒有設定，則儲存預設值
+                    saveSettings();
+                }
+                // 初始化後更新 UI 顯示和計時器
+                updateSettingsUI();
+                timer.reset();
+            }, (error) => {
+                console.error("Error listening to settings:", error);
+            });
+        }
+
+        /**
+         * 儲存當前的番茄鐘設定到 Firestore
+         */
+        async function saveSettings() {
+            if (!db || !userId) {
+                console.warn("Cannot save settings: Firestore not initialized or userId unavailable.");
+                return;
+            }
+
+            // 確保函式已定義
+            if (typeof doc === 'undefined' || typeof setDoc === 'undefined') {
+                console.error("Firestore functions (doc, setDoc) are not defined. Check Firebase import setup.");
+                return;
+            }
+
+            const settingsToSave = {
+                work: parseInt(document.getElementById('work-time').value) || DEFAULTS.work,
+                break: parseInt(document.getElementById('break-time').value) || DEFAULTS.break,
+                longBreak: parseInt(document.getElementById('long-break-time').value) || DEFAULTS.longBreak,
+                cycles: parseInt(document.getElementById('long-break-cycles').value) || DEFAULTS.cycles,
+            };
+
+            const settingsRef = doc(db, 
+                `artifacts/${appId}/users/${userId}/pomodoro_settings/current`
+            );
+
+            try {
+                await setDoc(settingsRef, settingsToSave, { merge: true });
+                console.log("Settings saved successfully to Firestore.");
+                Object.assign(settings, settingsToSave); // 更新本地設定
+                timer.reset();
+            } catch (error) {
+                console.error("Error saving settings:", error);
+            }
+        }
+        
+        /**
+         * 更新設定面板的輸入欄位
+         */
+        function updateSettingsUI() {
+            document.getElementById('work-time').value = settings.work;
+            document.getElementById('break-time').value = settings.break;
+            document.getElementById('long-break-time').value = settings.longBreak;
+            document.getElementById('long-break-cycles').value = settings.cycles;
+        }
+
+
+        // 監聽認證狀態變更
+        window.addEventListener('load', () => {
+            if (window.auth) {
+                auth = window.auth;
+                db = window.db;
+                appId = window.appId;
+                
+                // 確保函式已定義
+                if (typeof onAuthStateChanged === 'undefined') {
+                    console.error("Auth function onAuthStateChanged is not defined. Check Firebase import setup.");
+                    return;
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-id-display').textContent = `用戶 ID: ${userId}`;
+                        isAuthReady = true;
+                        startSettingsListener();
+                    } else {
+                        // 匿名用戶或未登入
+                        userId = crypto.randomUUID(); 
+                        document.getElementById('user-id-display').textContent = `用戶 ID: (匿名) ${userId}`;
+                        isAuthReady = true;
+                        // 匿名登入後，如果沒有設定，則使用預設值
+                        updateSettingsUI();
+                        timer.reset();
+                    }
+                });
+            } else {
+                 // 禁用 Firestore
+                userId = crypto.randomUUID();
+                document.getElementById('user-id-display').textContent = `用戶 ID: (離線) ${userId}`;
+                isAuthReady = true;
+                updateSettingsUI();
+                timer.reset();
+            }
+        });
+
+        // =======================================================================
+        // II. Pomodoro Timer Logic
+        // =======================================================================
+
+        class PomodoroTimer {
+            constructor() {
+                this.timerId = null;
+                this.isRunning = false;
+                this.phase = 'work'; // 'work', 'break', 'long_break'
+                this.timeRemaining = 0;
+                this.cycleCount = 0;
+                
+                this.elements = {
+                    timeDisplay: document.getElementById('time-display'),
+                    phaseDisplay: document.getElementById('phase-display'),
+                    cycleCount: document.getElementById('cycle-count'),
+                    startBtn: document.getElementById('start-btn'),
+                };
+                
+                this.elements.startBtn.addEventListener('click', () => this.toggle());
+                document.getElementById('reset-btn').addEventListener('click', () => this.reset());
+            }
+
+            getTimeForPhase(phase) {
+                switch (phase) {
+                    case 'work':
+                        return settings.work * 60;
+                    case 'break':
+                        return settings.break * 60;
+                    case 'long_break':
+                        return settings.longBreak * 60;
+                    default:
+                        return settings.work * 60;
+                }
+            }
+
+            reset() {
+                this.stop();
+                this.phase = 'work';
+                this.cycleCount = 0;
+                this.timeRemaining = this.getTimeForPhase('work');
+                this.updateUI();
+                this.elements.startBtn.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 開始';
+                threeDScene.updatePhaseVisuals(this.phase);
+            }
+
+            toggle() {
+                if (this.isRunning) {
+                    this.stop();
+                } else {
+                    this.start();
+                }
+            }
+
+            start() {
+                if (this.isRunning) return;
+                this.isRunning = true;
+                this.elements.startBtn.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h1.5m1.5 0h1.5m-3 4h1.5m1.5 0h1.5"></path></svg> 暫停';
+                this.timerId = setInterval(() => this.tick(), 1000);
+            }
+
+            stop() {
+                if (!this.isRunning) return;
+                this.isRunning = false;
+                clearInterval(this.timerId);
+                this.elements.startBtn.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 繼續';
+            }
+
+            tick() {
+                if (this.timeRemaining > 0) {
+                    this.timeRemaining--;
+                } else {
+                    this.nextPhase();
+                }
+                this.updateUI();
+            }
+
+            nextPhase() {
+                this.stop();
+                
+                // 播放提醒音效
+                const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-01.mp3'); 
+                audio.play().catch(e => console.error("Could not play sound.", e));
+                
+                if (this.phase === 'work') {
+                    this.cycleCount++;
+                    if (this.cycleCount % settings.cycles === 0) {
+                        this.phase = 'long_break';
+                    } else {
+                        this.phase = 'break';
+                    }
+                } else {
+                    this.phase = 'work';
+                }
+
+                this.timeRemaining = this.getTimeForPhase(this.phase);
+                this.updateUI();
+                threeDScene.updatePhaseVisuals(this.phase);
+                
+                // 進入下一階段自動開始
+                setTimeout(() => this.start(), 1000);
+            }
+
+            updateUI() {
+                const minutes = Math.floor(this.timeRemaining / 60);
+                const seconds = this.timeRemaining % 60;
+                const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                
+                this.elements.timeDisplay.textContent = timeStr;
+                this.elements.cycleCount.textContent = this.cycleCount;
+
+                let phaseText = '';
+                let phaseColor = 'text-pink-500';
+                if (this.phase === 'work') {
+                    phaseText = '專注時間';
+                    phaseColor = 'text-pink-500';
+                    threeDScene.updateProgress(1 - (this.timeRemaining / this.getTimeForPhase('work')));
+                } else if (this.phase === 'break') {
+                    phaseText = '短暫休息';
+                    phaseColor = 'text-green-500';
+                    threeDScene.updateProgress(1 - (this.timeRemaining / this.getTimeForPhase('break')));
+                } else if (this.phase === 'long_break') {
+                    phaseText = '長休息時間';
+                    phaseColor = 'text-blue-500';
+                    threeDScene.updateProgress(1 - (this.timeRemaining / this.getTimeForPhase('long_break')));
+                }
+
+                this.elements.phaseDisplay.textContent = phaseText;
+                this.elements.phaseDisplay.className = `text-3xl font-bold mb-1 ${phaseColor}`;
+            }
+        }
+        
+        // =======================================================================
+        // III. Three.js 3D Scene Implementation
+        // =======================================================================
+        
+        class ThreeDScene {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.scene = new THREE.Scene();
+                this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+                this.camera = null;
+                this.controls = null;
+                this.tomato = null;
+                this.island = null;
+                this.ringProgress = null;
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+
+                this.initScene();
+                this.addLighting();
+                this.addObjects();
+                this.addEventListeners();
+                this.animate();
+            }
+
+            initScene() {
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x000000, 0); // 設置透明背景
+
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(5, 5, 5);
+                
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.minDistance = 5;
+                this.controls.maxDistance = 15;
+            }
+
+            addLighting() {
+                this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(this.ambientLight);
+                
+                this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+                this.directionalLight.position.set(5, 10, 7.5);
+                this.scene.add(this.directionalLight);
+            }
+
+            addObjects() {
+                // 1. 可愛番茄精靈 (Tomato Mascot)
+                const tomatoGeo = new THREE.SphereGeometry(1, 16, 16);
+                const tomatoMat = new THREE.MeshPhongMaterial({ color: 0xff6b6b, flatShading: true }); // 可愛紅色
+                this.tomato = new THREE.Mesh(tomatoGeo, tomatoMat);
+                this.tomato.position.y = 2.5;
+                this.scene.add(this.tomato);
+
+                // 2. 3D 時間島嶼 (Island Base - Low Poly Look)
+                const islandGeo = new THREE.CylinderGeometry(4, 5, 2, 8);
+                const islandMat = new THREE.MeshPhongMaterial({ color: 0x8fbc8f, flatShading: true }); // 柔和綠色
+                this.island = new THREE.Mesh(islandGeo, islandMat);
+                this.island.position.y = 1; // 讓它坐在番茄精靈下面
+                this.scene.add(this.island);
+                
+                // 3. 進度光環 (Ring Progress)
+                const ringGeo = new THREE.RingGeometry(3, 3.2, 64);
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide });
+                this.ringProgress = new THREE.Mesh(ringGeo, ringMat);
+                this.ringProgress.rotation.x = Math.PI / 2; // 讓環面水平
+                this.ringProgress.position.y = 3.5;
+                this.scene.add(this.ringProgress);
+                this.updateProgress(0); // 初始化為 0 進度
+            }
+            
+            updateProgress(ratio) {
+                // 根據進度比例 (0 到 1) 繪製環形進度條
+                // 使用 Geometry 的 `setDrawRange` 來控制可見的圓周長度
+                if (this.ringProgress) {
+                    const angle = ratio * 2 * Math.PI;
+                    this.ringProgress.geometry.setDrawRange(0, angle / (2 * Math.PI) * 64);
+                    this.ringProgress.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+
+            updatePhaseVisuals(phase) {
+                let tomatoColor = 0xff6b6b; // 預設紅色
+                let islandColor = 0x8fbc8f; // 預設綠色
+                let progressColor = 0xf59e0b; // 預設橘色
+                let rotationSpeed = 0.005;
+                let scale = 1.0;
+
+                if (phase === 'work') {
+                    tomatoColor = 0xff6b6b; // 鮮紅
+                    islandColor = 0x8fbc8f; // 活力綠
+                    progressColor = 0xf59e0b;
+                    rotationSpeed = 0.01; // 工作時轉快一點
+                    scale = 1.1;
+                } else if (phase === 'break') {
+                    tomatoColor = 0x81c784; // 休息時變綠色 (放鬆)
+                    islandColor = 0xb0c4de; // 柔和藍色 (休息天空)
+                    progressColor = 0x20b2aa;
+                    rotationSpeed = 0.003; // 休息時轉慢一點
+                    scale = 0.9;
+                } else if (phase === 'long_break') {
+                    tomatoColor = 0x6495ed; // 長休時變藍色 (深度放鬆)
+                    islandColor = 0xffe4e1; // 粉色 (獎勵)
+                    progressColor = 0x4682b4;
+                    rotationSpeed = 0.001; // 轉速極慢
+                    scale = 1.2;
+                }
+
+                // 執行視覺平滑過渡
+                this.lerpColor(this.tomato.material.color, new THREE.Color(tomatoColor), 0.1);
+                this.lerpColor(this.island.material.color, new THREE.Color(islandColor), 0.1);
+                this.lerpColor(this.ringProgress.material.color, new THREE.Color(progressColor), 0.1);
+
+                // 設置給動畫迴圈使用
+                this.currentRotationSpeed = rotationSpeed;
+                this.targetScale = scale;
+            }
+
+            lerpColor(startColor, endColor, alpha) {
+                startColor.r += (endColor.r - startColor.r) * alpha;
+                startColor.g += (endColor.g - startColor.g) * alpha;
+                startColor.b += (endColor.b - startColor.b) * alpha;
+            }
+
+            onPointerDown(event) {
+                // 僅在休息階段允許互動
+                if (timer.phase === 'work') return;
+                
+                // 計算標準化設備座標 (NDC)
+                this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                this.mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                
+                // 檢測是否點擊到島嶼
+                const intersects = this.raycaster.intersectObject(this.island);
+
+                if (intersects.length > 0) {
+                    const point = intersects[0].point;
+                    this.createParticleBurst(point);
+                }
+            }
+            
+            createParticleBurst(position) {
+                // 創建可愛的粒子爆炸效果 (例如星星或愛心)
+                const geometry = new THREE.BufferGeometry();
+                const count = 50;
+                const positions = new Float32Array(count * 3);
+                const colors = new Float32Array(count * 3);
+                const color = new THREE.Color(0xffd700); // 金色/黃色星星
+
+                for (let i = 0; i < count; i++) {
+                    // 隨機初始位置 (圍繞點擊位置)
+                    positions[i * 3 + 0] = position.x + (Math.random() - 0.5) * 0.5;
+                    positions[i * 3 + 1] = position.y + 1.5 + (Math.random() - 0.5) * 0.5;
+                    positions[i * 3 + 2] = position.z + (Math.random() - 0.5) * 0.5;
+                    
+                    colors[i * 3 + 0] = color.r;
+                    colors[i * 3 + 1] = color.g;
+                    colors[i * 3 + 2] = color.b;
+                }
+
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                const material = new THREE.PointsMaterial({
+                    size: 0.2,
+                    vertexColors: true,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    depthTest: false
+                });
+
+                const particles = new THREE.Points(geometry, material);
+                this.scene.add(particles);
+
+                // 移除粒子效果
+                setTimeout(() => {
+                    this.scene.remove(particles);
+                    geometry.dispose();
+                    material.dispose();
+                }, 1000);
+            }
+
+
+            addEventListeners() {
+                window.addEventListener('resize', this.onWindowResize.bind(this));
+                this.canvas.addEventListener('pointerdown', this.onPointerDown.bind(this));
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            animate() {
+                requestAnimationFrame(this.animate.bind(this));
+                
+                // 1. 動態效果 (番茄精靈旋轉和縮放)
+                if (this.currentRotationSpeed) {
+                    this.tomato.rotation.y += this.currentRotationSpeed;
+                }
+                
+                if (this.targetScale !== undefined) {
+                    this.tomato.scale.lerp(new THREE.Vector3(this.targetScale, this.targetScale, this.targetScale), 0.05);
+                }
+
+                this.controls.update(); // 軌道控制器更新
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // =======================================================================
+        // IV. Application Initialization
+        // =======================================================================
+
+        let timer;
+        let threeDScene;
+
+        window.onload = function () {
+            const canvas = document.getElementById('pomodoro-canvas');
+            threeDScene = new ThreeDScene(canvas);
+            timer = new PomodoroTimer();
+            timer.reset();
+            
+            // UI 互動設置
+            const settingsModal = document.getElementById('settings-modal');
+            const settingsToggleBtn = document.getElementById('settings-toggle-btn');
+            
+            settingsToggleBtn.addEventListener('click', () => {
+                updateSettingsUI(); // 打開時，確保 UI 反映當前設定
+                settingsModal.classList.remove('hidden');
+            });
+            
+            document.getElementById('close-settings-btn').addEventListener('click', () => {
+                settingsModal.classList.add('hidden');
+            });
+            
+            document.getElementById('save-settings-btn').addEventListener('click', () => {
+                saveSettings();
+                settingsModal.classList.add('hidden');
+            });
+            
+            // 初始視覺設定
+            threeDScene.updatePhaseVisuals('work');
+        };
+    </script>
+</body>
+</html>
