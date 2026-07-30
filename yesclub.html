@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>社團線上點名系統</title>
+  <style>
+    :root {
+      --primary-color: #4F46E5;
+      --primary-gradient: linear-gradient(135deg, #6366F1 0%, #4338CA 100%);
+      --bg-color: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --border-color: #E2E8F0;
+      
+      --status-default: #F1F5F9;
+      --status-default-text: #475569;
+      --status-success: #10B981;
+      --status-warning: #F59E0B;
+      --status-danger: #EF4444;
+
+      --card-ok-bg: #ECFDF5;
+      --card-ok-border: #A7F3D0;
+      --card-ok-text: #064E3B;
+      
+      --card-warn-bg: #FEF2F2;
+      --card-warn-border: #FCA5A5;
+      --card-warn-text: #7F1D1D;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding-top: 75px;
+      padding-bottom: 95px;
+      font-size: 15px;
+      min-height: 100vh;
+    }
+
+    /* 頂部導覽列 */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 1px 10px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 1000;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .nav-date {
+      position: absolute;
+      bottom: -26px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary-color);
+      background: #EEF2FF;
+      padding: 3px 0;
+      border-bottom: 1px solid var(--border-color);
+      letter-spacing: 0.5px;
+    }
+
+    .navbar select {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      outline: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    /* 登入介面 */
+    .login-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 120px);
+      padding: 20px 16px;
+    }
+    
+    .login-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 420px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+      text-align: center;
+    }
+    
+    .login-icon {
+      width: 64px;
+      height: 64px;
+      background: #EEF2FF;
+      color: var(--primary-color);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px auto;
+      font-size: 32px;
+    }
+
+    .login-card h2 { font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 6px; }
+    .login-card .subtitle { font-size: 13.5px; font-weight: 700; color: var(--primary-color); margin-bottom: 24px; background: #EEF2FF; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+
+    .login-input {
+      width: 100%; padding: 15px; font-size: 18px; border: 2px solid var(--border-color); border-radius: 14px; margin-bottom: 20px; text-align: center; font-weight: 700; letter-spacing: 2px; outline: none; transition: all 0.2s; background: #F8FAFC;
+    }
+    .login-input:focus { border-color: var(--primary-color); background: #FFFFFF; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12); }
+
+    .login-btn {
+      width: 100%; background: var(--primary-gradient); color: white; border: none; padding: 15px; font-size: 16px; font-weight: 700; border-radius: 14px; cursor: pointer; box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25); transition: all 0.2s;
+    }
+    .login-btn:active { transform: scale(0.98); }
+
+    /* 載入動畫 */
+    #loader { display: flex; flex-direction: column; align-items: center; margin-top: 60px; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #E2E8F0; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* 主容器：桌機自適應放寬至 1100px */
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 16px;
+      margin-top: 20px;
+    }
+
+    .student-card, .admin-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 22px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03);
+    }
+    
+    .student-header {
+      display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); padding-bottom: 12px; margin-bottom: 14px;
+    }
+    .student-info h3 { font-size: 20px; font-weight: 800; }
+    .student-meta { font-size: 13.5px; color: var(--text-muted); font-weight: 500; }
+
+    /* 按鈕組 */
+    .btn-row { display: flex; gap: 10px; margin-bottom: 8px; }
+    .btn {
+      flex: 1; padding: 13px 0; border: 1px solid var(--border-color); border-radius: 12px; background: var(--status-default); color: var(--status-default-text); font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; outline: none;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn.active-出席 { background: var(--status-success); color: white; border-color: var(--status-success); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    .btn.active-請假 { background: var(--status-warning); color: white; border-color: var(--status-warning); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
+    .btn.active-缺席 { background: var(--status-danger); color: white; border-color: var(--status-danger); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+
+    .timestamp { font-size: 11px; color: #94A3B8; margin-top: 6px; text-align: right; min-height: 16px; font-weight: 500; }
+    
+    /* 底部放學回報列 */
+    .dismissal-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--border-color); padding: 14px 16px; z-index: 1000;
+    }
+    .dismissal-bar-content { max-width: 1100px; margin: 0 auto; text-align: center; }
+    .dismissal-bar button {
+      width: 100%; max-width: 600px; padding: 14px; font-size: 16px; font-weight: 700; border: none; border-radius: 14px; color: white; cursor: pointer; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+    }
+
+    /* 行政頁籤 */
+    .admin-tabs {
+      display: flex; margin: 30px auto 16px auto; background: #E2E8F0; border-radius: 14px; padding: 4px; max-width: 1100px; width: calc(100% - 32px);
+    }
+    .admin-tab {
+      flex: 1; text-align: center; padding: 12px 0; font-size: 15px; font-weight: 700; color: var(--text-muted); cursor: pointer; border-radius: 10px; transition: all 0.2s;
+    }
+    .admin-tab.active { background: var(--card-bg); color: var(--primary-color); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+    /* 行政後台燈號網格 */
+    .monitoring-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 12px;
+    }
+    .monitor-card {
+      border-radius: 16px; padding: 18px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;
+    }
+    .monitor-card:active { transform: scale(0.98); }
+    .monitor-card.all-done { background-color: var(--card-ok-bg); border-color: var(--card-ok-border); color: var(--card-ok-text); }
+    .monitor-card.has-pending { background-color: var(--card-warn-bg); border-color: var(--card-warn-border); color: var(--card-warn-text); }
+
+    .detail-drawer {
+      display: none; background: #F8FAFC; border-radius: 14px; padding: 14px; margin-top: 10px; border: 1px solid var(--border-color);
+    }
+    .drawer-list-item {
+      display: inline-block; background: white; border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 700; margin: 0 4px 6px 0;
+    }
+
+    /* 數據分析桌機與手機 Layout */
+    .stat-cards { display: flex; gap: 16px; margin-bottom: 20px; }
+    .stat-card { flex: 1; padding: 20px; border-radius: 16px; text-align: center; font-weight: 700; }
+    .stat-card.leave { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+    .stat-card.absent { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+    .stat-num { font-size: 32px; font-weight: 800; margin-top: 4px; }
+
+    /* 數據分析桌機雙欄佈局 (Responsive Grid) */
+    .analytics-grid {
+      display: grid; grid-template-columns: 1fr; gap: 20px;
+    }
+    @media (min-width: 768px) {
+      .analytics-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .ranking-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+    .ranking-table th, .ranking-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    .ranking-table th { color: var(--text-muted); font-weight: 700; }
+
+    .filter-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .filter-group { flex: 1; min-width: 140px; display: flex; flex-direction: column; }
+    .filter-group label { font-size: 12.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+    .filter-group input, .filter-group select { padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 14px; font-weight: 600; outline: none; background: #FFF; }
+
+    #mainApp, #adminApp { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- 登入畫面 -->
+  <div id="loginView" class="login-container">
+    <div class="login-card">
+      <div class="login-icon">📋</div>
+      <h2>社團線上點名系統</h2>
+      <div class="subtitle" id="todayDisplayLogin"></div>
+      <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px; font-weight:500;">請輸入您的手機號碼以登入系統</p>
+      
+      <input type="tel" id="phoneInput" class="login-input" placeholder="例如: 0912345678" maxlength="10">
+      <button id="loginBtn" class="login-btn" onclick="doLogin()">登入系統</button>
+      <div id="loginError" style="color: var(--status-danger); margin-top: 15px; font-size: 14px; font-weight:bold; display: none;"></div>
+    </div>
+  </div>
+
+  <!-- 老師點名介面 -->
+  <div id="mainApp">
+    <div class="navbar">
+      <div id="teacherGreeting" style="font-weight:bold; margin-right:10px; color:var(--primary-color);"></div>
+      <select id="sheetSelector" onchange="loadStudents()"><option value="">載入中...</option></select>
+      <div class="nav-date" id="navDateTeacher"></div>
+    </div>
+    
+    <div class="container">
+      <div id="loader"><div class="spinner"></div><p style="color:var(--text-muted); font-weight:600;">讀取學生名單中...</p></div>
+      <div id="studentList"></div>
+    </div>
+    
+    <div class="dismissal-bar" id="dismissalBar" style="display:none;">
+      <div class="dismissal-bar-content">
+        <button id="dismissalBtn" onclick="reportClubDismissal()">尚未放學 — 點此回報</button>
+        <div class="dismissal-info" id="dismissalInfo" style="font-size:12px; color:var(--text-muted); margin-top:4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 行政後台介面 -->
+  <div id="adminApp">
+    <div class="navbar">
+      <div style="font-weight:800; color:var(--primary-color); text-align:center; flex:1; font-size:16px;">系統管理儀表板</div>
+      <div class="nav-date" id="navDateAdmin"></div>
+    </div>
+    
+    <div class="admin-tabs">
+      <div class="admin-tab active" id="tabToday" onclick="switchAdminTab('today')">今日概況</div>
+      <div class="admin-tab" id="tabAnalytics" onclick="switchAdminTab('analytics')">數據分析</div>
+    </div>
+    
+    <!-- 今日概況 -->
+    <div class="container" id="adminTodayContainer">
+      <button class="login-btn" style="margin-bottom:16px; width:100%; border:none;" onclick="loadAdminData()">重新整理資料</button>
+      <div id="adminLoader" style="display:none; text-align:center; padding:20px;"><div class="spinner"></div></div>
+      <div id="adminContent">
+        <div class="admin-card">
+          <h3 style="font-size:17px; font-weight:800; margin-bottom:8px;">🏫 今日社團點名燈號與監控</h3>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">點擊社團卡片可展開檢視未點名、請假、缺席名單與放學回報狀態。</p>
+          <div class="monitoring-grid" id="monitoringGridContainer"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 數據分析 (修復版與桌機自適應) -->
+    <div class="container" id="adminAnalyticsContainer" style="display:none;">
+      <div class="admin-card">
+        <h3 style="font-size:17px; font-weight:800; margin-bottom:12px;">統計區間篩選</h3>
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>開始日期</label>
+            <input type="date" id="anaStartDate">
+          </div>
+          <div class="filter-group">
+            <label>結束日期</label>
+            <input type="date" id="anaEndDate">
+          </div>
+          <button class="login-btn" style="width: auto; padding: 0 28px; height: 45px;" onclick="loadAnalytics()">查詢統計</button>
+        </div>
+      </div>
+
+      <div id="anaLoader" style="display:none; text-align:center; padding:30px;"><div class="spinner"></div><p style="color:var(--text-muted); font-weight:600;">正在計算統計數據...</p></div>
+      
+      <div id="anaContent" style="display:none;">
+        <div class="stat-cards">
+          <div class="stat-card leave">總請假次數<div class="stat-num" id="statTotalLeave">0</div></div>
+          <div class="stat-card absent">總無故缺席次數<div class="stat-num" id="statTotalAbsent">0</div></div>
+        </div>
+
+        <div class="analytics-grid">
+          <div class="admin-card">
+            <h3 style="font-size:16px; font-weight:800;">請假次數 Top 10 排行</h3>
+            <h4 style="margin-top:12px; font-size:13px; color:var(--text-muted);">👥 學生榜</h4>
+            <table class="ranking-table" id="tableStudentLeave"></table>
+            <h4 style="margin-top:16px; font-size:13px; color:var(--text-muted);">🏫 社團榜</h4>
+            <table class="ranking-table" id="tableClubLeave"></table>
+          </div>
+
+          <div class="admin-card">
+            <h3 style="font-size:16px; font-weight:800;">無故缺席次數 Top 10 排行</h3>
+            <h4 style="margin-top:12px; font-size:13px; color:var(--text-muted);">👥 學生榜</h4>
+            <table class="ranking-table" id="tableStudentAbsent"></table>
+            <h4 style="margin-top:16px; font-size:13px; color:var(--text-muted);">🏫 社團榜</h4>
+            <table class="ranking-table" id="tableClubAbsent"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 特定學生查詢 -->
+      <div class="admin-card" style="margin-top: 20px;">
+        <h3 style="font-size:17px; font-weight:800; margin-bottom:12px;">特定學生紀錄查詢</h3>
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>選擇社團</label>
+            <select id="searchClub" onchange="updateSearchStudentDropdown()"><option value="">請先選擇社團</option></select>
+          </div>
+          <div class="filter-group">
+            <label>選擇學生</label>
+            <select id="searchStudent"><option value="">請先選擇學生</option></select>
+          </div>
+          <button class="login-btn" style="width: auto; padding: 0 28px; height: 45px;" onclick="loadStudentHistory()">查詢歷史紀錄</button>
+        </div>
+        <div id="historyLoader" style="display:none; text-align:center; padding:15px; font-weight:bold; color:var(--text-muted);">查詢中...</div>
+        <div id="historyContainer" style="margin-top:15px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwaA-JTXoNoKgtIba9iv0xzQjuToTex5e6O6C7p_-oapRJAPD8ctc5O1cGs4dyfjs6o/exec";
+    const ROLL_CALL_OPTIONS = ['出席', '請假', '缺席'];
+    let currentDateStr = '';
+    let currentStudentData = [];
+    let allClubsStudents = {};
+
+    (function initDate() {
+      const days = ['日', '一', '二', '三', '四', '五', '六'];
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      currentDateStr = `${yyyy}-${mm}-${dd}`;
+      const displayDate = `今日日期：${currentDateStr} (${days[now.getDay()]})`;
+      
+      document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById('todayDisplayLogin').textContent = displayDate;
+        document.getElementById('navDateTeacher').textContent = `${currentDateStr} (${days[now.getDay()]})`;
+        document.getElementById('navDateAdmin').textContent = `${currentDateStr} (${days[now.getDay()]})`;
+        
+        // 初始化日期選擇器預設區間
+        document.getElementById('anaStartDate').value = `${yyyy}-${mm}-01`;
+        document.getElementById('anaEndDate').value = currentDateStr;
+      });
+    })();
+
+    function callGAS(action, data, callback) {
+      fetch(GAS_API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: action, data: data })
+      })
+      .then(res => res.json())
+      .then(resData => callback(resData))
+      .catch(err => alert("連線錯誤: " + err));
+    }
+
+    function doLogin() {
+      const phone = document.getElementById('phoneInput').value.trim();
+      const errDiv = document.getElementById('loginError');
+      const btn = document.getElementById('loginBtn');
+      if (!phone) { errDiv.textContent = '請輸入手機號碼'; errDiv.style.display = 'block'; return; }
+      errDiv.style.display = 'none'; btn.textContent = '登入中...'; btn.disabled = true;
+
+      callGAS('loginTeacher', { phone: phone }, function(res) {
+        btn.textContent = '登入系統'; btn.disabled = false;
+        if (res.success) {
+          document.getElementById('loginView').style.display = 'none';
+          if (res.isAdmin) {
+            document.getElementById('adminApp').style.display = 'block';
+            loadAdminData();
+            loadClubsAndStudents();
+          } else {
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('teacherGreeting').textContent = (res.teacherName || '') + ' 老師';
+            const select = document.getElementById('sheetSelector'); select.innerHTML = '';
+            res.clubs.forEach(name => select.appendChild(new Option(name, name)));
+            loadStudents();
+          }
+        } else {
+          errDiv.textContent = res.error; errDiv.style.display = 'block';
+        }
+      });
+    }
+
+    function loadStudents() {
+      const sheetName = document.getElementById('sheetSelector').value; if (!sheetName) return;
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('studentList').innerHTML = '';
+      callGAS('getStudents', { sheetName: sheetName, dateStr: currentDateStr }, function(res) {
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('dismissalBar').style.display = 'block';
+        updateDismissalBtn(res.isDismissed, res.dismissedTime);
+        currentStudentData = res.students;
+        document.getElementById('studentList').innerHTML = res.students.map((student, index) => `
+          <div class="student-card">
+            <div class="student-header">
+              <div class="student-info"><h3>${student.name}</h3><div class="student-meta">${student.className}班 | 座號: ${student.seatNo}</div></div>
+            </div>
+            <div class="btn-row">
+              ${ROLL_CALL_OPTIONS.map(opt => `<button class="btn ${student.rollCallStatus===opt?'active-'+opt:''}" onclick="updateStatus(${index}, '${opt}', this)">${opt}</button>`).join('')}
+            </div>
+            <div class="timestamp" id="time-${index}">${student.rollCallTime ? '已記錄: ' + student.rollCallTime : ''}</div>
+          </div>
+        `).join('');
+      });
+    }
+
+    function updateStatus(index, value, btn) {
+      const sheetName = document.getElementById('sheetSelector').value;
+      const student = currentStudentData[index];
+      btn.closest('.btn-row').querySelectorAll('.btn').forEach(b => b.className = 'btn');
+      btn.classList.add(`active-${value}`);
+      document.getElementById(`time-${index}`).textContent = '寫入中...';
+      callGAS('updateStudentStatus', { sheetName: sheetName, student: student, type: 'rollCall', value: value, dateStr: currentDateStr }, function(res) {
+        document.getElementById(`time-${index}`).textContent = '已記錄: ' + res.time;
+      });
+    }
+
+    function updateDismissalBtn(isDismissed, timeStr) {
+      const btn = document.getElementById('dismissalBtn');
+      if (isDismissed) {
+        btn.textContent = '✅ 已帶至定點放學'; btn.style.background = 'var(--status-success)';
+        document.getElementById('dismissalInfo').textContent = '回報時間: ' + timeStr;
+      } else {
+        btn.textContent = '尚未放學 — 點此回報'; btn.style.background = 'var(--primary-gradient)';
+        document.getElementById('dismissalInfo').textContent = '點名完成後請點此回報。';
+      }
+    }
+
+    function reportClubDismissal() {
+      const sheetName = document.getElementById('sheetSelector').value;
+      callGAS('updateClubDismissal', { sheetName: sheetName, dateStr: currentDateStr }, function(res) {
+        updateDismissalBtn(true, res.time);
+      });
+    }
+
+    /* 行政概況 */
+    function loadAdminData() {
+      document.getElementById('adminLoader').style.display = 'block';
+      callGAS('getAdminDashboardData', { dateStr: currentDateStr }, function(res) {
+        document.getElementById('adminLoader').style.display = 'none';
+        const grid = document.getElementById('monitoringGridContainer');
+        grid.innerHTML = res.activeClubs.map((club, index) => {
+          const stats = club.stats; const hasPending = stats.notCalled > 0;
+          return `
+            <div>
+              <div class="monitor-card ${hasPending?'has-pending':'all-done'}" onclick="toggleDrawer(${index})">
+                <h4 style="font-size:16px; font-weight:800; margin-bottom:4px;">${club.name}</h4>
+                <div style="font-size:13px; font-weight:bold; margin-bottom:8px;">${hasPending?'⏳ 點名未完成':'✅ 點名全完成'}</div>
+                <div style="font-size:11.5px; display:flex; gap:4px; flex-wrap:wrap; font-weight:600;">
+                  <span>應到:${stats.expected}</span><span>實到:${stats.present}</span><span>請假:${stats.leave}</span><span>缺席:${stats.absent}</span>
+                  ${hasPending?`<span style="background:#EF4444;color:white;padding:1px 5px;border-radius:4px;">未點:${stats.notCalled}</span>`:''}
+                </div>
+              </div>
+              <div class="detail-drawer" id="drawer-${index}">
+                <p style="font-size:12px; margin-bottom:6px; font-weight:700;">🚌 放學: ${stats.dismissed ? '已回報 ('+stats.dismissedTime+')' : '尚未回報'}</p>
+                ${renderDrawerList('未點名', stats.studentsDetail.notCalled)}
+                ${renderDrawerList('請假', stats.studentsDetail.leave)}
+                ${renderDrawerList('缺席', stats.studentsDetail.absent)}
+              </div>
+            </div>
+          `;
+        }).join('');
+      });
+    }
+
+    function renderDrawerList(title, list) {
+      if (!list || list.length === 0) return '';
+      return `<div style="font-size:12px; font-weight:bold; margin-top:6px;">${title}: ${list.map(s => `<span class="drawer-list-item">${s.className}班 ${s.name}</span>`).join('')}</div>`;
+    }
+
+    function toggleDrawer(index) {
+      const d = document.getElementById(`drawer-${index}`);
+      d.style.display = d.style.display === 'block' ? 'none' : 'block';
+    }
+
+    /* 數據分析功能修復 */
+    function loadAnalytics() {
+      const start = document.getElementById('anaStartDate').value;
+      const end = document.getElementById('anaEndDate').value;
+      if (!start || !end) { alert("請選擇開始與結束日期！"); return; }
+      
+      document.getElementById('anaLoader').style.display = 'block';
+      document.getElementById('anaContent').style.display = 'none';
+      
+      callGAS('getAnalyticsOverview', { startDate: start, endDate: end }, function(res) {
+        document.getElementById('anaLoader').style.display = 'none';
+        document.getElementById('anaContent').style.display = 'block';
+        
+        document.getElementById('statTotalLeave').textContent = res.totalLeave || 0;
+        document.getElementById('statTotalAbsent').textContent = res.totalAbsent || 0;
+        
+        renderRankingTable('tableStudentLeave', res.topStudentsLeave, true);
+        renderRankingTable('tableClubLeave', res.topClubsLeave, false);
+        renderRankingTable('tableStudentAbsent', res.topStudentsAbsent, true);
+        renderRankingTable('tableClubAbsent', res.topClubsAbsent, false);
+      });
+    }
+
+    function renderRankingTable(id, data, isStudent) {
+      const table = document.getElementById(id);
+      if (!data || data.length === 0) { table.innerHTML = '<tr><td style="color:var(--text-muted);">無資料</td></tr>'; return; }
+      let html = `<tr><th>名次</th><th>${isStudent ? '姓名 (社團)' : '社團名稱'}</th><th>次數</th></tr>`;
+      data.forEach((item, i) => {
+        html += `<tr><td>${i+1}</td><td>${item.name} ${item.club ? '<span style="color:#64748B;font-size:12px;">('+item.club+')</span>':''}</td><td style="font-weight:bold; color:var(--primary-color);">${item.count}</td></tr>`;
+      });
+      table.innerHTML = html;
+    }
+
+    /* 學生歷史紀錄查詢 */
+    function loadClubsAndStudents() {
+      callGAS('getClubsAndStudents', {}, function(res) {
+        allClubsStudents = res;
+        const clubSel = document.getElementById('searchClub');
+        clubSel.innerHTML = '<option value="">請選擇社團</option>';
+        Object.keys(res).forEach(c => clubSel.appendChild(new Option(c, c)));
+      });
+    }
+
+    function updateSearchStudentDropdown() {
+      const club = document.getElementById('searchClub').value;
+      const stuSel = document.getElementById('searchStudent');
+      stuSel.innerHTML = '<option value="">請選擇學生</option>';
+      if (club && allClubsStudents[club]) {
+        allClubsStudents[club].forEach(s => stuSel.appendChild(new Option(s, s)));
+      }
+    }
+
+    function loadStudentHistory() {
+      const club = document.getElementById('searchClub').value;
+      const student = document.getElementById('searchStudent').value;
+      if (!club || !student) { alert("請先選擇社團與學生！"); return; }
+      
+      document.getElementById('historyLoader').style.display = 'block';
+      document.getElementById('historyContainer').innerHTML = '';
+      
+      callGAS('getStudentHistory', { clubName: club, studentName: student }, function(res) {
+        document.getElementById('historyLoader').style.display = 'none';
+        const div = document.getElementById('historyContainer');
+        if (!res || res.length === 0) { div.innerHTML = '<p style="color:var(--text-muted); text-align:center;">該生尚無任何請假或無故缺席紀錄。</p>'; return; }
+        
+        let html = '';
+        res.forEach(item => {
+          if(item.rollCall !== '請假' && item.rollCall !== '缺席') return;
+          const isAbsent = item.rollCall === '缺席';
+          html += `
+            <div style="padding:10px 0; border-bottom:1px solid var(--border-color);">
+              <span class="badge ${isAbsent?'badge-danger':'badge-warning'}">${isAbsent?'無故缺席':'請假'}</span> 
+              <strong style="margin-left:6px;">日期: ${item.date}</strong>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">記錄時間: ${item.time || '無'}</div>
+            </div>
+          `;
+        });
+        div.innerHTML = html || '<p style="color:var(--text-muted); text-align:center;">該生尚無任何請假或無故缺席紀錄。</p>';
+      });
+    }
+
+    function switchAdminTab(tab) {
+      document.getElementById('tabToday').classList.remove('active');
+      document.getElementById('tabAnalytics').classList.remove('active');
+      document.getElementById('tab' + (tab === 'today' ? 'Today' : 'Analytics')).classList.add('active');
+      
+      document.getElementById('adminTodayContainer').style.display = tab === 'today' ? 'block' : 'none';
+      document.getElementById('adminAnalyticsContainer').style.display = tab === 'analytics' ? 'block' : 'none';
+      
+      if (tab === 'analytics' && document.getElementById('anaContent').style.display === 'none') {
+        loadAnalytics();
+      }
+    }
+  </script>
+</body>
+</html>
